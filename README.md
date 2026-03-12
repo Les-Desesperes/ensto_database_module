@@ -1,4 +1,4 @@
-# @lesdesesperes/ensto-db
+# @les-desesperes/ensto-db
 
 Database module for Ensto built with Sequelize + MySQL.
 
@@ -10,7 +10,7 @@ It provides:
 ## Installation
 
 ```bash
-pnpm add @lesdesesperes/ensto-db
+pnpm add @les-desesperes/ensto-db
 ```
 
 ## Exports
