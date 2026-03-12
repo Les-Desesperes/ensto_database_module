@@ -1,6 +1,6 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import sequelize from '../config/db';
-import {hashSHA256} from "@/utils/crypto";
+import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
+import defaultSequelize from '../config/db';
+import { hashSHA256 } from '../utils/crypto';
 
 interface EmployeeAttributes {
     employeeId: number;
@@ -11,53 +11,68 @@ interface EmployeeAttributes {
 
 interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'employeeId'> {}
 
-class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
-    public employeeId!: number;
-    public username!: string;
-    public passwordHash!: string;
-    public role!: 'Admin' | 'WarehouseWorker';
-}
+export type EmployeeInstance = Model<EmployeeAttributes, EmployeeCreationAttributes> & EmployeeAttributes;
+export type EmployeeModel = ModelStatic<EmployeeInstance>;
 
-Employee.init(
-    {
-        employeeId: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            autoIncrement: true,
-            primaryKey: true,
-            field: 'employee_id',
-        },
-        username: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            unique: true,
-        },
-        passwordHash: {
-            type: DataTypes.STRING, // NOTE: Needs SHA-256 hashing before insert
-            allowNull: false,
-            field: 'password_hash',
-        },
-        role: {
-            type: DataTypes.ENUM('Admin', 'WarehouseWorker'), // Translated from Admin/Magasinier
-            allowNull: false,
-        },
-    },
-    {
-        sequelize,
-        tableName: 'employees',
-        timestamps: false,
-        hooks: {
-            beforeCreate: (employee: Employee) => {
-                if (employee.passwordHash) {
-                    employee.passwordHash = hashSHA256(employee.passwordHash);
-                }
-            },
-            beforeUpdate: (employee: Employee) => {
-                if (employee.changed('passwordHash')) {
-                    employee.passwordHash = hashSHA256(employee.passwordHash);
-                }
-            },
-        },
+export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+    const existingModel = sequelize.models.Employee as EmployeeModel | undefined;
+    if (existingModel) {
+        return existingModel;
     }
-);
+
+    class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
+        declare employeeId: number;
+        declare username: string;
+        declare passwordHash: string;
+        declare role: 'Admin' | 'WarehouseWorker';
+    }
+
+    Employee.init(
+        {
+            employeeId: {
+                type: DataTypes.INTEGER.UNSIGNED,
+                autoIncrement: true,
+                primaryKey: true,
+                field: 'employee_id',
+            },
+            username: {
+                type: DataTypes.STRING,
+                allowNull: false,
+                unique: true,
+            },
+            passwordHash: {
+                type: DataTypes.STRING,
+                allowNull: false,
+                field: 'password_hash',
+            },
+            role: {
+                type: DataTypes.ENUM('Admin', 'WarehouseWorker'),
+                allowNull: false,
+            },
+        },
+        {
+            sequelize,
+            modelName: 'Employee',
+            tableName: 'employees',
+            timestamps: false,
+            hooks: {
+                beforeCreate: (employee: EmployeeInstance) => {
+                    if (employee.passwordHash) {
+                        employee.passwordHash = hashSHA256(employee.passwordHash);
+                    }
+                },
+                beforeUpdate: (employee: EmployeeInstance) => {
+                    if (employee.changed('passwordHash')) {
+                        employee.passwordHash = hashSHA256(employee.passwordHash);
+                    }
+                },
+            },
+        }
+    );
+
+    return Employee as EmployeeModel;
+};
+
+const Employee = defineEmployeeModel(defaultSequelize);
 
 export default Employee;

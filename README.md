@@ -1,11 +1,13 @@
 # @les-desesperes/ensto-db
 
-Database module for Ensto built with Sequelize + MySQL.
+Sequelize-based database module for Ensto applications.
 
 It provides:
-- a preconfigured Sequelize instance
-- domain models (`Employee`, `DeliveryDriver`, `Vehicle`, `Visitor`, `HistoryLog`)
-- crypto helpers for AES-256 encryption/decryption and SHA-256 hashing
+- an `EnstoDatabase` class for connection lifecycle and model management
+- built-in Ensto models with associations
+- dynamic model registration and schema-based model creation
+- a singleton `sequelize` export for compatibility
+- crypto helpers for hashing and AES encryption/decryption
 
 ## Installation
 
@@ -13,18 +15,44 @@ It provides:
 pnpm add @les-desesperes/ensto-db
 ```
 
-## Exports
+## Documentation
 
-From `src/index.ts`, the package exports:
-- `sequelize` (default export from `src/config/db.ts`)
-- all models from `src/models`
-- crypto utilities from `src/utils/crypto`
+Detailed usage documentation is available in [`docs/USAGE.md`](./docs/USAGE.md).
 
-Example:
+## Quick Start
+
+```ts
+import { EnstoDatabase } from '@les-desesperes/ensto-db';
+
+async function main() {
+  const db = new EnstoDatabase();
+
+  await db.authenticate();
+  await db.sync();
+
+  const employee = await db.models.Employee.create({
+    username: 'admin',
+    passwordHash: 'plain-password',
+    role: 'Admin',
+  });
+
+  console.log(employee.employeeId);
+
+  await db.close();
+}
+
+main().catch(console.error);
+```
+
+## Main Exports
 
 ```ts
 import {
+  EnstoDatabase,
   sequelize,
+  createSequelizeInstance,
+  getEnvDatabaseConfig,
+  initModels,
   Employee,
   DeliveryDriver,
   Vehicle,
@@ -33,14 +61,46 @@ import {
   encryptAES,
   decryptAES,
   hashSHA256,
-} from '@lesdesesperes/ensto-db';
+} from '@les-desesperes/ensto-db';
 ```
 
-## Configuration
+## Built-in Models
 
-This module reads environment variables through `dotenv`.
+- `Employee`
+- `DeliveryDriver`
+- `Vehicle`
+- `Visitor`
+- `HistoryLog`
 
-Create a `.env` file in your app:
+## Dynamic Models
+
+```ts
+import { DataTypes } from 'sequelize';
+import { EnstoDatabase } from '@les-desesperes/ensto-db';
+
+const db = new EnstoDatabase();
+
+const Contractor = db.createModel(
+  'Contractor',
+  {
+    contractorId: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    companyName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+  },
+  {
+    tableName: 'contractors',
+    timestamps: false,
+  }
+);
+```
+
+## Environment Variables
 
 ```env
 MYSQL_DATABASE=ensto
@@ -51,93 +111,15 @@ MYSQL_PORT=3306
 ENCRYPTION_KEY=your-32-byte-secret-key-string!!
 ```
 
-Required variables:
-- `MYSQL_DATABASE`
-- `MYSQL_USER`
-- `MYSQL_PASSWORD`
-- `MYSQL_HOST`
-- `MYSQL_PORT` (optional, defaults to `3306`)
-- `ENCRYPTION_KEY` (recommended; fallback exists but should not be used in production)
-
-## Quick Start
-
-```ts
-import { sequelize, Employee, DeliveryDriver } from '@lesdesesperes/ensto-db';
-
-async function main() {
-  await sequelize.authenticate();
-
-  const admin = await Employee.create({
-    username: 'admin',
-    passwordHash: 'plain-text-password', // gets hashed by model hook
-    role: 'Admin',
-  });
-
-  const driver = await DeliveryDriver.create({
-    encryptedFirstName: 'John', // gets encrypted by model hook
-    encryptedLastName: 'Doe',   // gets encrypted by model hook
-    company: 'Acme Logistics',
-    ppeCharterValid: true,
-    ppeSignatureDate: new Date(),
-  });
-
-  console.log(admin.employeeId, driver.driverId);
-}
-
-main().catch(console.error);
-```
-
-## Models
-
-- `Employee`
-  - fields: `employeeId`, `username`, `passwordHash`, `role`
-  - behavior: `passwordHash` is SHA-256 hashed in create/update hooks
-- `DeliveryDriver`
-  - fields: `driverId`, `encryptedLastName`, `encryptedFirstName`, `company`, `ppeCharterValid`, `ppeSignatureDate`
-  - behavior: first/last name fields are AES-encrypted before save and decrypted after fetch
-- `Vehicle`
-  - fields: `vehicleId`, `licensePlate`, `vehicleType`, `driverId`
-- `Visitor`
-  - fields: `visitorId`, `fullName`, `company`, `arrivalTime`
-- `HistoryLog`
-  - fields: `logId`, `dateTime`, `actionType`, `details`, plus nullable relation ids
-
-### Associations
-
-Defined in `src/models/index.ts`:
-- `DeliveryDriver` has many `Vehicle`
-- `Employee` has many `HistoryLog`
-- `Vehicle` has many `HistoryLog`
-- `DeliveryDriver` has many `HistoryLog`
-- `Visitor` has many `HistoryLog`
-
-## Crypto Utilities
-
-- `encryptAES(text: string): string`
-- `decryptAES(encryptedText: string): string`
-- `hashSHA256(text: string): string`
-
 ## Development
-
-Install dependencies:
 
 ```bash
 pnpm install
-```
-
-Build TypeScript:
-
-```bash
 pnpm run build
+pnpm test
 ```
 
-Package output:
-- JS: `dist/index.js`
-- Types: `dist/index.d.ts`
+## Publish Notes
 
-## Notes
-
-- This package targets CommonJS output (`tsconfig.json` -> `"module": "CommonJS"`).
-- There is currently no test script in `package.json`.
-- `prepublishOnly` runs the build automatically before publishing.
-
+This release includes the new `EnstoDatabase` API and dynamic model support.
+See the full guide in [`docs/USAGE.md`](./docs/USAGE.md) before publishing.
