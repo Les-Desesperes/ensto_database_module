@@ -1,9 +1,28 @@
 {
   "name": "@les-desesperes/ensto-db",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "Sequelize database module and model manager for Ensto",
+  "author": "Les Désespérés",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "keywords": [
+    "sequelize",
+    "mysql",
+    "orm",
+    "ensto",
+    "database",
+    "models",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Les-Desesperes/ensto_database_module.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Les-Desesperes/ensto_database_module/issues"
+  },
+  "homepage": "https://github.com/Les-Desesperes/ensto_database_module#readme",
   "files": [
     "dist",
     "docs"

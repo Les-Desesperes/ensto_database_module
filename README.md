@@ -1,5 +1,9 @@
 # @les-desesperes/ensto-db
 
+[![npm version](https://img.shields.io/npm/v/@les-desesperes/ensto-db.svg)](https://www.npmjs.com/package/@les-desesperes/ensto-db)
+[![license](https://img.shields.io/npm/l/@les-desesperes/ensto-db.svg)](./LICENSE)
+[![GitHub](https://img.shields.io/badge/github-Les--Desesperes%2Fensto__database__module-blue?logo=github)](https://github.com/Les-Desesperes/ensto_database_module)
+
 Sequelize-based database module for Ensto applications.
 
 It provides:
