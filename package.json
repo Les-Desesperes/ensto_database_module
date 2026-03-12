@@ -1,0 +1,23 @@
+{
+  "name": "@les-desesperes/ensto-db",
+  "version": "1.0.0",
+  "description": "Database models and connection for Ensto",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "mysql2": "^3.9.7",
+    "sequelize": "^6.37.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.5"
+  }
+}
