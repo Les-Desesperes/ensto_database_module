@@ -2,7 +2,7 @@ import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
 import defaultSequelize from '../config/db';
 import { hashSHA256 } from '../utils/crypto';
 
-type EmployeeRole = 'Admin' | 'Magasinier' | 'Personnel';
+export type EmployeeRole = 'Admin' | 'Magasinier' | 'Personnel';
 
 interface EmployeeAttributes {
     employeeId: number;
