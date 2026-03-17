@@ -2,12 +2,14 @@ import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
 import defaultSequelize from '../config/db';
 import { hashSHA256 } from '../utils/crypto';
 
+type EmployeeRole = 'Admin' | 'Magasinier' | 'Personnel';
+
 interface EmployeeAttributes {
     employeeId: number;
     username: string;
     badgeUuid: string;
     passwordHash: string;
-    role: 'Admin' | 'WarehouseWorker';
+    role: EmployeeRole;
 }
 
 interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'employeeId'> {}
@@ -26,7 +28,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
         declare username: string;
         declare badgeUuid: string;
         declare passwordHash: string;
-        declare role: 'Admin' | 'WarehouseWorker';
+        declare role: EmployeeRole;
     }
 
     Employee.init(
@@ -57,7 +59,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
                 field: 'password_hash',
             },
             role: {
-                type: DataTypes.ENUM('Admin', 'WarehouseWorker'),
+                type: DataTypes.ENUM('Admin', 'Magasinié', 'Personnel'),
                 allowNull: false,
             },
         },
