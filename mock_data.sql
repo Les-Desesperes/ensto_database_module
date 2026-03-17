@@ -11,8 +11,8 @@ ALTER TABLE `employees` AUTO_INCREMENT = 1;
 
 INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `role`)
 VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Admin'),
-       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'WarehouseWorker'),
-       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'WarehouseWorker');
+       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Magasinié'),
+       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Personnel');
 
 -- --------------------------------------------------------
 -- 2. Mock Data for Delivery Drivers (Livreurs)
