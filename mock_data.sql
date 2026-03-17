@@ -9,10 +9,10 @@ DELETE
 FROM `employees`;
 ALTER TABLE `employees` AUTO_INCREMENT = 1;
 
-INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `role`)
-VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Admin'),
-       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Magasinier'),
-       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Personnel');
+INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `firstName`, `lastName`, `role`, `createdAt`, `updatedAt`)
+VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Jean', 'Dupont', 'Admin', '2023-12-01 07:45:00', '2023-12-01 07:45:00'),
+       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Marie', 'Lefevre', 'Magasinié', '2023-12-01 07:50:00', '2023-12-01 07:50:00'),
+       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Alex', 'Leroi', 'Personnel', '2023-12-01 07:55:00', '2023-12-01 07:55:00');
 
 -- --------------------------------------------------------
 -- 2. Mock Data for Delivery Drivers (Livreurs)
@@ -23,11 +23,11 @@ ALTER TABLE `delivery_drivers` AUTO_INCREMENT = 1;
 
 INSERT INTO `delivery_drivers` (`driver_id`, `encrypted_last_name`, `encrypted_first_name`, `company`,
                                 `ppe_charter_valid`, `ppe_signature_date`)
-VALUES (1, 'e3b0c44298fc1c149afbf4c8996fb924:e3b0c44298fc1c14', 'e3b0c44298fc1c149afbf4c8996fb924:8a2f3b',
+VALUES (1, 'e33072e62921354c73a999339f910c89:328fbf70b5d57565fe7fcd4e657ee1b7', '293e8632f8b0c20de2364698b7a4de53:84f8ea0b2c5131addc3222b2ea33b647',
         'Fast Logistics', 1, '2023-10-01 08:30:00'),
-       (2, 'a1b2c3d4e5f678901234567890abcdef:c4d5e6f7a8b9', 'a1b2c3d4e5f678901234567890abcdef:1a2b3c', 'Global Freight',
+       (2, 'd5bdc1ded531b9bdedfcd9d16882e541:07e0cf4f29ce33a82079c1ba1e9304f6', '8ccc27f8e0175403ed71b9ecd9d350a6:7cf94d1ac2c069c730f1b31507617533', 'Global Freight',
         1, '2023-11-15 09:00:00'),
-       (3, 'f1e2d3c4b5a69876543210fedcba0987:9f8e7d', 'f1e2d3c4b5a69876543210fedcba0987:6c5b4a', 'Local Transports', 0,
+       (3, '958f4aff9442c507147c3e4e73a58065:2bbb83dfd61a7b478e8c452bec41c8e1', '7764609094bf3ea37a1c4e02c1546501:074c9d2a477bff9826120e5768876588', 'Local Transports', 0,
         NULL);
 
 -- --------------------------------------------------------
