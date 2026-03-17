@@ -5,6 +5,7 @@ import { hashSHA256 } from '../utils/crypto';
 interface EmployeeAttributes {
     employeeId: number;
     username: string;
+    badgeUuid: string;
     passwordHash: string;
     role: 'Admin' | 'WarehouseWorker';
 }
@@ -23,6 +24,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
     class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
         declare employeeId: number;
         declare username: string;
+        declare badgeUuid: string;
         declare passwordHash: string;
         declare role: 'Admin' | 'WarehouseWorker';
     }
@@ -39,6 +41,15 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
                 type: DataTypes.STRING,
                 allowNull: false,
                 unique: true,
+            },
+            badgeUuid: {
+                type: DataTypes.STRING(8),
+                allowNull: false,
+                unique: true,
+                field: 'badge_uuid',
+                validate: {
+                    is: /^[A-F0-9]{8}$/,
+                },
             },
             passwordHash: {
                 type: DataTypes.STRING,

@@ -67,6 +67,7 @@ async function main() {
 
   const employee = await db.models.Employee.create({
     username: 'admin',
+    badgeUuid: 'B053AF25',
     passwordHash: 'plain-password',
     role: 'Admin',
   });
@@ -159,6 +160,7 @@ Fields:
 
 - `employeeId`
 - `username`
+- `badgeUuid` (8-char uppercase hex RFID UUID, maps to `badge_uuid`)
 - `passwordHash`
 - `role`
 

@@ -36,6 +36,7 @@ async function main() {
 
   const employee = await db.models.Employee.create({
     username: 'admin',
+    badgeUuid: 'B053AF25',
     passwordHash: 'plain-password',
     role: 'Admin',
   });

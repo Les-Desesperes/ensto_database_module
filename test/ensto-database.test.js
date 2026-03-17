@@ -162,6 +162,7 @@ async function run() {
 
     const employee = db.models.Employee.build({
       username: 'admin',
+      badgeUuid: 'B053AF25',
       passwordHash: 'plain-password',
       role: 'Admin',
     });
