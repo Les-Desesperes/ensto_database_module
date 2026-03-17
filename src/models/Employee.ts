@@ -9,6 +9,8 @@ interface EmployeeAttributes {
     username: string;
     badgeUuid: string;
     passwordHash: string;
+    firstName: string;
+    lastName: string;
     role: EmployeeRole;
 }
 
@@ -28,6 +30,8 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
         declare username: string;
         declare badgeUuid: string;
         declare passwordHash: string;
+        declare firstName: string;
+        declare lastName: string;
         declare role: EmployeeRole;
     }
 
@@ -43,6 +47,16 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
                 type: DataTypes.STRING,
                 allowNull: false,
                 unique: true,
+            },
+            lastName: {
+                type: DataTypes.STRING,
+                allowNull: false,
+                unique: false,
+            },
+            firstName: {
+                type: DataTypes.STRING,
+                allowNull: false,
+                unique: false,
             },
             badgeUuid: {
                 type: DataTypes.STRING(8),
@@ -67,7 +81,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
             sequelize,
             modelName: 'Employee',
             tableName: 'employees',
-            timestamps: false,
+            timestamps: true,
             hooks: {
                 beforeCreate: (employee: EmployeeInstance) => {
                     if (employee.passwordHash) {
