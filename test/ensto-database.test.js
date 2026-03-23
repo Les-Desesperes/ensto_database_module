@@ -22,6 +22,7 @@ async function run() {
       'DeliveryDriver',
       'Employee',
       'HistoryLog',
+      'TempPlate',
       'Vehicle',
       'Visitor',
     ];
@@ -29,6 +30,7 @@ async function run() {
     assert.deepEqual(builtInModels, expectedModels, 'built-in models should be initialized');
     assert.ok(db.getModel('Employee'), 'Employee model should be retrievable');
     assert.ok(db.getModel('DeliveryDriver'), 'DeliveryDriver model should be retrievable');
+    assert.ok(db.getModel('TempPlate'), 'TempPlate model should be retrievable');
 
     let authenticateCalls = 0;
     let syncCalls = 0;

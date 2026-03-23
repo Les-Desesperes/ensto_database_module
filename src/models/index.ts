@@ -3,6 +3,7 @@ import defaultSequelize from '../config/db';
 import { defineDeliveryDriverModel, DeliveryDriverModel } from './DeliveryDriver';
 import { defineEmployeeModel, EmployeeModel } from './Employee';
 import { defineHistoryLogModel, HistoryLogModel } from './HistoryLog';
+import { defineTempPlateModel, TempPlateModel } from './TempPlate';
 import { defineVehicleModel, VehicleModel } from './Vehicle';
 import { defineVisitorModel, VisitorModel } from './Visitor';
 
@@ -12,6 +13,7 @@ export interface EnstoModels {
     Vehicle: VehicleModel;
     Visitor: VisitorModel;
     HistoryLog: HistoryLogModel;
+    TempPlate: TempPlateModel;
 }
 
 const associatedSequelizeInstances = new WeakSet<Sequelize>();
@@ -40,6 +42,7 @@ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels
         Vehicle: defineVehicleModel(sequelize),
         Visitor: defineVisitorModel(sequelize),
         HistoryLog: defineHistoryLogModel(sequelize),
+        TempPlate: defineTempPlateModel(sequelize),
     };
 
     if (!associatedSequelizeInstances.has(sequelize)) {
@@ -52,7 +55,7 @@ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels
 
 const defaultModels = initModels(defaultSequelize);
 
-export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog } = defaultModels;
+export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog, TempPlate } = defaultModels;
 
 export {
     defineEmployeeModel,
@@ -60,6 +63,7 @@ export {
     defineVehicleModel,
     defineVisitorModel,
     defineHistoryLogModel,
+    defineTempPlateModel,
 };
 
 export default defaultModels;
