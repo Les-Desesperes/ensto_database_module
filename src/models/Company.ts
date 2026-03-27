@@ -1,7 +1,7 @@
 import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
 import defaultSequelize from '../config/db';
 
-export type CompanyType = 'Carrier' | 'Third-Party Service Provider';
+export type CompanyType = string;
 
 interface CompanyAttributes {
 	companyId: number;
@@ -44,7 +44,7 @@ export const defineCompanyModel = (sequelize: Sequelize): CompanyModel => {
 				unique: true,
 			},
 			type: {
-				type: DataTypes.ENUM('Carrier', 'Third-Party Service Provider'),
+				type: DataTypes.STRING,
 				allowNull: false,
 			},
 			contactEmail: {
