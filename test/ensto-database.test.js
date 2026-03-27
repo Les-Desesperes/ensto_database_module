@@ -19,6 +19,7 @@ async function run() {
   try {
     const builtInModels = Object.keys(db.models).sort();
     const expectedModels = [
+      'Company',
       'DeliveryDriver',
       'Employee',
       'HistoryLog',

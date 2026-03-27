@@ -1,5 +1,6 @@
 import { Sequelize } from 'sequelize';
 import defaultSequelize from '../config/db';
+import { defineCompanyModel, CompanyModel } from './Company';
 import { defineDeliveryDriverModel, DeliveryDriverModel } from './DeliveryDriver';
 import { defineEmployeeModel, EmployeeModel } from './Employee';
 import { defineHistoryLogModel, HistoryLogModel } from './HistoryLog';
@@ -8,6 +9,7 @@ import { defineVehicleModel, VehicleModel } from './Vehicle';
 import { defineVisitorModel, VisitorModel } from './Visitor';
 
 export interface EnstoModels {
+    Company: CompanyModel;
     Employee: EmployeeModel;
     DeliveryDriver: DeliveryDriverModel;
     Vehicle: VehicleModel;
@@ -37,6 +39,7 @@ const applyAssociations = ({ Employee, DeliveryDriver, Vehicle, Visitor, History
 
 export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels => {
     const models: EnstoModels = {
+        Company: defineCompanyModel(sequelize),
         Employee: defineEmployeeModel(sequelize),
         DeliveryDriver: defineDeliveryDriverModel(sequelize),
         Vehicle: defineVehicleModel(sequelize),
@@ -55,9 +58,10 @@ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels
 
 const defaultModels = initModels(defaultSequelize);
 
-export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog, TempPlate } = defaultModels;
+export const { Company, Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog, TempPlate } = defaultModels;
 
 export {
+    defineCompanyModel,
     defineEmployeeModel,
     defineDeliveryDriverModel,
     defineVehicleModel,
