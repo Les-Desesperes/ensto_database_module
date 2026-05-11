@@ -1,0 +1,84 @@
+@startuml
+' ER diagram generated from Sequelize models in src/models
+hide methods
+hide stereotypes
+skinparam classAttributeIconSize 0
+
+entity "companies\n(Company)" as Company {
+  * company_id : INT UNSIGNED <<PK>>
+  --
+  * name : VARCHAR <<UNIQUE>>
+  * type : VARCHAR
+  * contact_email : VARCHAR
+  * contact_phone : VARCHAR
+}
+
+entity "employees\n(Employee)" as Employee {
+  * employee_id : INT UNSIGNED <<PK>>
+  --
+  * username : VARCHAR <<UNIQUE>>
+  * badge_uuid : VARCHAR(8) <<UNIQUE>>
+  * password_hash : VARCHAR
+  * firstName : VARCHAR
+  * lastName : VARCHAR
+  * role : ENUM(Admin, Magasinie, Personnel)
+  * createdAt : DATETIME
+  * updatedAt : DATETIME
+}
+
+entity "delivery_drivers\n(DeliveryDriver)" as DeliveryDriver {
+  * driver_id : INT UNSIGNED <<PK>>
+  --
+  * encrypted_first_name : VARCHAR
+  * encrypted_last_name : VARCHAR
+  * company : VARCHAR
+  * ppe_charter_valid : BOOLEAN = false
+  o ppe_signature_date : DATETIME
+}
+
+entity "vehicles\n(Vehicle)" as Vehicle {
+  * vehicle_id : INT UNSIGNED <<PK>>
+  --
+  * license_plate : VARCHAR <<UNIQUE>>
+  * vehicle_type : ENUM(HGV, LCV)
+  o driver_id : INT UNSIGNED <<FK>>
+}
+
+entity "visitors\n(Visitor)" as Visitor {
+  * visitor_id : INT UNSIGNED <<PK>>
+  --
+  * firstName : VARCHAR
+  * lastName : VARCHAR
+  * company : VARCHAR
+  * employee : VARCHAR
+  * arrival_time : DATETIME
+}
+
+entity "history_logs\n(HistoryLog)" as HistoryLog {
+  * log_id : INT UNSIGNED <<PK>>
+  --
+  * date_time : DATETIME = NOW
+  * action_type : ENUM(Entry, Exit, Refusal)
+  o details : TEXT
+  o employee_id : INT UNSIGNED <<FK>>
+  o vehicle_id : INT UNSIGNED <<FK>>
+  o driver_id : INT UNSIGNED <<FK>>
+  o visitor_id : INT UNSIGNED <<FK>>
+}
+
+entity "temp_plates\n(TempPlate)" as TempPlate {
+  * singleton_id : TINYINT UNSIGNED <<PK>> (=1)
+  --
+  * license_plate : VARCHAR(20)
+  * created_at : DATETIME
+  * updated_at : DATETIME
+}
+
+DeliveryDriver ||--o{ Vehicle : driver_id
+Employee ||--o{ HistoryLog : employee_id
+Vehicle ||--o{ HistoryLog : vehicle_id
+DeliveryDriver ||--o{ HistoryLog : driver_id
+Visitor ||--o{ HistoryLog : visitor_id
+
+@enduml
+

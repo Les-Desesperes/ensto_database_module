@@ -1,6 +1,6 @@
 {
   "name": "@les-desesperes/ensto-db",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Sequelize database module and model manager for Ensto",
   "author": "Les Désespérés",
   "license": "MIT",

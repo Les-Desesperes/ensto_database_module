@@ -1,0 +1,4494 @@
+commit e186e6657c6bccaeb0eaad248659d60445106fd5
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Fri Mar 27 11:32:05 2026 +0100
+
+    feat: add Company model and increment version to 1.1.8 in package.json
+---
+ src/models/Company.ts | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/models/Company.ts b/src/models/Company.ts
+index da982f6..b922bbf 100644
+--- a/src/models/Company.ts
++++ b/src/models/Company.ts
+@@ -1,7 +1,7 @@
+ import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
+ import defaultSequelize from '../config/db';
+ 
+-export type CompanyType = 'Carrier' | 'Third-Party Service Provider';
++export type CompanyType = string;
+ 
+ interface CompanyAttributes {
+ 	companyId: number;
+@@ -44,7 +44,7 @@ export const defineCompanyModel = (sequelize: Sequelize): CompanyModel => {
+ 				unique: true,
+ 			},
+ 			type: {
+-				type: DataTypes.ENUM('Carrier', 'Third-Party Service Provider'),
++				type: DataTypes.STRING,
+ 				allowNull: false,
+ 			},
+ 			contactEmail: {
+
+commit a4fb392a460f4890a32f80f3018f86ecc794d04b
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Fri Mar 27 11:30:27 2026 +0100
+
+    feat: add Company model and increment version to 1.1.8 in package.json
+---
+ package.json                |  2 +-
+ src/models/Company.ts       | 78 +++++++++++++++++++++++++++++++++++++++++++++
+ src/models/index.ts         |  6 +++-
+ test/ensto-database.test.js |  1 +
+ 4 files changed, 85 insertions(+), 2 deletions(-)
+
+diff --git a/package.json b/package.json
+index 29124f1..54e60ac 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.7",
++  "version": "1.1.8",
+   "description": "Sequelize database module and model manager for Ensto",
+   "author": "Les Désespérés",
+   "license": "MIT",
+diff --git a/src/models/Company.ts b/src/models/Company.ts
+new file mode 100644
+index 0000000..da982f6
+--- /dev/null
++++ b/src/models/Company.ts
+@@ -0,0 +1,78 @@
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
++
++export type CompanyType = 'Carrier' | 'Third-Party Service Provider';
++
++interface CompanyAttributes {
++	companyId: number;
++	name: string;
++	type: CompanyType;
++	contactEmail: string;
++	contactPhone: string;
++}
++
++interface CompanyCreationAttributes extends Optional<CompanyAttributes, 'companyId'> {}
++
++export type CompanyInstance = Model<CompanyAttributes, CompanyCreationAttributes> & CompanyAttributes;
++export type CompanyModel = ModelStatic<CompanyInstance>;
++
++export const defineCompanyModel = (sequelize: Sequelize): CompanyModel => {
++	const existingModel = sequelize.models.Company as CompanyModel | undefined;
++	if (existingModel) {
++		return existingModel;
++	}
++
++	class Company extends Model<CompanyAttributes, CompanyCreationAttributes> implements CompanyAttributes {
++		declare companyId: number;
++		declare name: string;
++		declare type: CompanyType;
++		declare contactEmail: string;
++		declare contactPhone: string;
++	}
++
++	Company.init(
++		{
++			companyId: {
++				type: DataTypes.INTEGER.UNSIGNED,
++				autoIncrement: true,
++				primaryKey: true,
++				field: 'company_id',
++			},
++			name: {
++				type: DataTypes.STRING,
++				allowNull: false,
++				unique: true,
++			},
++			type: {
++				type: DataTypes.ENUM('Carrier', 'Third-Party Service Provider'),
++				allowNull: false,
++			},
++			contactEmail: {
++				type: DataTypes.STRING,
++				allowNull: false,
++				field: 'contact_email',
++				validate: {
++					isEmail: true,
++				},
++			},
++			contactPhone: {
++				type: DataTypes.STRING,
++				allowNull: false,
++				field: 'contact_phone',
++			},
++		},
++		{
++			sequelize,
++			modelName: 'Company',
++			tableName: 'companies',
++			timestamps: false,
++		}
++	);
++
++	return Company as CompanyModel;
++};
++
++const Company = defineCompanyModel(defaultSequelize);
++
++export default Company;
++
+diff --git a/src/models/index.ts b/src/models/index.ts
+index 4e0c7da..2fd612e 100644
+--- a/src/models/index.ts
++++ b/src/models/index.ts
+@@ -1,5 +1,6 @@
+ import { Sequelize } from 'sequelize';
+ import defaultSequelize from '../config/db';
++import { defineCompanyModel, CompanyModel } from './Company';
+ import { defineDeliveryDriverModel, DeliveryDriverModel } from './DeliveryDriver';
+ import { defineEmployeeModel, EmployeeModel } from './Employee';
+ import { defineHistoryLogModel, HistoryLogModel } from './HistoryLog';
+@@ -8,6 +9,7 @@ import { defineVehicleModel, VehicleModel } from './Vehicle';
+ import { defineVisitorModel, VisitorModel } from './Visitor';
+ 
+ export interface EnstoModels {
++    Company: CompanyModel;
+     Employee: EmployeeModel;
+     DeliveryDriver: DeliveryDriverModel;
+     Vehicle: VehicleModel;
+@@ -37,6 +39,7 @@ const applyAssociations = ({ Employee, DeliveryDriver, Vehicle, Visitor, History
+ 
+ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels => {
+     const models: EnstoModels = {
++        Company: defineCompanyModel(sequelize),
+         Employee: defineEmployeeModel(sequelize),
+         DeliveryDriver: defineDeliveryDriverModel(sequelize),
+         Vehicle: defineVehicleModel(sequelize),
+@@ -55,9 +58,10 @@ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels
+ 
+ const defaultModels = initModels(defaultSequelize);
+ 
+-export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog, TempPlate } = defaultModels;
++export const { Company, Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog, TempPlate } = defaultModels;
+ 
+ export {
++    defineCompanyModel,
+     defineEmployeeModel,
+     defineDeliveryDriverModel,
+     defineVehicleModel,
+diff --git a/test/ensto-database.test.js b/test/ensto-database.test.js
+index 803d0b0..5c01d29 100644
+--- a/test/ensto-database.test.js
++++ b/test/ensto-database.test.js
+@@ -19,6 +19,7 @@ async function run() {
+   try {
+     const builtInModels = Object.keys(db.models).sort();
+     const expectedModels = [
++      'Company',
+       'DeliveryDriver',
+       'Employee',
+       'HistoryLog',
+
+commit c44981895887dacb7c964fddce71befbcee8af30
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Mon Mar 23 19:20:57 2026 +0100
+
+    feat: add TempPlate model and update package version to 1.1.7
+---
+ package.json                |  2 +-
+ src/models/TempPlate.ts     | 62 +++++++++++++++++++++++++++++++++++++++++++++
+ src/models/index.ts         |  6 ++++-
+ test/ensto-database.test.js |  2 ++
+ 4 files changed, 70 insertions(+), 2 deletions(-)
+
+diff --git a/package.json b/package.json
+index 12b5100..29124f1 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.6",
++  "version": "1.1.7",
+   "description": "Sequelize database module and model manager for Ensto",
+   "author": "Les Désespérés",
+   "license": "MIT",
+diff --git a/src/models/TempPlate.ts b/src/models/TempPlate.ts
+new file mode 100644
+index 0000000..9e82b2e
+--- /dev/null
++++ b/src/models/TempPlate.ts
+@@ -0,0 +1,62 @@
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
++
++interface TempPlateAttributes {
++    singletonId: number;
++    licensePlate: string;
++}
++
++interface TempPlateCreationAttributes extends Optional<TempPlateAttributes, 'singletonId'> {}
++
++export type TempPlateInstance = Model<TempPlateAttributes, TempPlateCreationAttributes> & TempPlateAttributes;
++export type TempPlateModel = ModelStatic<TempPlateInstance>;
++
++export const defineTempPlateModel = (sequelize: Sequelize): TempPlateModel => {
++    const existingModel = sequelize.models.TempPlate as TempPlateModel | undefined;
++    if (existingModel) {
++        return existingModel;
++    }
++
++    class TempPlate extends Model<TempPlateAttributes, TempPlateCreationAttributes> implements TempPlateAttributes {
++        declare singletonId: number;
++        declare licensePlate: string;
++    }
++
++    TempPlate.init(
++        {
++            singletonId: {
++                type: DataTypes.TINYINT.UNSIGNED,
++                primaryKey: true,
++                allowNull: false,
++                defaultValue: 1,
++                validate: {
++                    isSingleton(value: number) {
++                        if (value !== 1) {
++                            throw new Error('Only one temp plate row is allowed.');
++                        }
++                    },
++                },
++                field: 'singleton_id',
++            },
++            licensePlate: {
++                type: DataTypes.STRING(20),
++                allowNull: false,
++                field: 'license_plate',
++            },
++        },
++        {
++            sequelize,
++            modelName: 'TempPlate',
++            tableName: 'temp_plates',
++            timestamps: true,
++            updatedAt: 'updated_at',
++            createdAt: 'created_at',
++        }
++    );
++
++    return TempPlate as TempPlateModel;
++};
++
++const TempPlate = defineTempPlateModel(defaultSequelize);
++
++export default TempPlate;
+diff --git a/src/models/index.ts b/src/models/index.ts
+index e995434..4e0c7da 100644
+--- a/src/models/index.ts
++++ b/src/models/index.ts
+@@ -3,6 +3,7 @@ import defaultSequelize from '../config/db';
+ import { defineDeliveryDriverModel, DeliveryDriverModel } from './DeliveryDriver';
+ import { defineEmployeeModel, EmployeeModel } from './Employee';
+ import { defineHistoryLogModel, HistoryLogModel } from './HistoryLog';
++import { defineTempPlateModel, TempPlateModel } from './TempPlate';
+ import { defineVehicleModel, VehicleModel } from './Vehicle';
+ import { defineVisitorModel, VisitorModel } from './Visitor';
+ 
+@@ -12,6 +13,7 @@ export interface EnstoModels {
+     Vehicle: VehicleModel;
+     Visitor: VisitorModel;
+     HistoryLog: HistoryLogModel;
++    TempPlate: TempPlateModel;
+ }
+ 
+ const associatedSequelizeInstances = new WeakSet<Sequelize>();
+@@ -40,6 +42,7 @@ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels
+         Vehicle: defineVehicleModel(sequelize),
+         Visitor: defineVisitorModel(sequelize),
+         HistoryLog: defineHistoryLogModel(sequelize),
++        TempPlate: defineTempPlateModel(sequelize),
+     };
+ 
+     if (!associatedSequelizeInstances.has(sequelize)) {
+@@ -52,7 +55,7 @@ export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels
+ 
+ const defaultModels = initModels(defaultSequelize);
+ 
+-export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog } = defaultModels;
++export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog, TempPlate } = defaultModels;
+ 
+ export {
+     defineEmployeeModel,
+@@ -60,6 +63,7 @@ export {
+     defineVehicleModel,
+     defineVisitorModel,
+     defineHistoryLogModel,
++    defineTempPlateModel,
+ };
+ 
+ export default defaultModels;
+diff --git a/test/ensto-database.test.js b/test/ensto-database.test.js
+index f3312a5..803d0b0 100644
+--- a/test/ensto-database.test.js
++++ b/test/ensto-database.test.js
+@@ -22,6 +22,7 @@ async function run() {
+       'DeliveryDriver',
+       'Employee',
+       'HistoryLog',
++      'TempPlate',
+       'Vehicle',
+       'Visitor',
+     ];
+@@ -29,6 +30,7 @@ async function run() {
+     assert.deepEqual(builtInModels, expectedModels, 'built-in models should be initialized');
+     assert.ok(db.getModel('Employee'), 'Employee model should be retrievable');
+     assert.ok(db.getModel('DeliveryDriver'), 'DeliveryDriver model should be retrievable');
++    assert.ok(db.getModel('TempPlate'), 'TempPlate model should be retrievable');
+ 
+     let authenticateCalls = 0;
+     let syncCalls = 0;
+
+commit 553cccdf7a9d7e9657859eabea99dc22a91c71b5
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:56:53 2026 +0100
+
+    feat: update employee mock data to include firstName and lastName fields
+---
+ mock_data.sql | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/mock_data.sql b/mock_data.sql
+index 7f7a750..e1fdd3f 100644
+--- a/mock_data.sql
++++ b/mock_data.sql
+@@ -9,10 +9,10 @@ DELETE
+ FROM `employees`;
+ ALTER TABLE `employees` AUTO_INCREMENT = 1;
+ 
+-INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `role`)
+-VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Admin'),
+-       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Magasinier'),
+-       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Personnel');
++INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `firstName`, `lastName`, `role`, `createdAt`, `updatedAt`)
++VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Jean', 'Dupont', 'Admin', '2023-12-01 07:45:00', '2023-12-01 07:45:00'),
++       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Marie', 'Lefevre', 'Magasinié', '2023-12-01 07:50:00', '2023-12-01 07:50:00'),
++       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Alex', 'Leroi', 'Personnel', '2023-12-01 07:55:00', '2023-12-01 07:55:00');
+ 
+ -- --------------------------------------------------------
+ -- 2. Mock Data for Delivery Drivers (Livreurs)
+@@ -23,11 +23,11 @@ ALTER TABLE `delivery_drivers` AUTO_INCREMENT = 1;
+ 
+ INSERT INTO `delivery_drivers` (`driver_id`, `encrypted_last_name`, `encrypted_first_name`, `company`,
+                                 `ppe_charter_valid`, `ppe_signature_date`)
+-VALUES (1, 'e3b0c44298fc1c149afbf4c8996fb924:e3b0c44298fc1c14', 'e3b0c44298fc1c149afbf4c8996fb924:8a2f3b',
++VALUES (1, 'e33072e62921354c73a999339f910c89:328fbf70b5d57565fe7fcd4e657ee1b7', '293e8632f8b0c20de2364698b7a4de53:84f8ea0b2c5131addc3222b2ea33b647',
+         'Fast Logistics', 1, '2023-10-01 08:30:00'),
+-       (2, 'a1b2c3d4e5f678901234567890abcdef:c4d5e6f7a8b9', 'a1b2c3d4e5f678901234567890abcdef:1a2b3c', 'Global Freight',
++       (2, 'd5bdc1ded531b9bdedfcd9d16882e541:07e0cf4f29ce33a82079c1ba1e9304f6', '8ccc27f8e0175403ed71b9ecd9d350a6:7cf94d1ac2c069c730f1b31507617533', 'Global Freight',
+         1, '2023-11-15 09:00:00'),
+-       (3, 'f1e2d3c4b5a69876543210fedcba0987:9f8e7d', 'f1e2d3c4b5a69876543210fedcba0987:6c5b4a', 'Local Transports', 0,
++       (3, '958f4aff9442c507147c3e4e73a58065:2bbb83dfd61a7b478e8c452bec41c8e1', '7764609094bf3ea37a1c4e02c1546501:074c9d2a477bff9826120e5768876588', 'Local Transports', 0,
+         NULL);
+ 
+ -- --------------------------------------------------------
+
+commit c4196c9907cdf84d70b830dc233532cb95d7bdf6
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:46:57 2026 +0100
+
+    feat: add firstName and lastName fields to Employee model and increment version to 1.1.6 in package.json
+---
+ package.json           |  2 +-
+ src/models/Employee.ts | 16 +++++++++++++++-
+ 2 files changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/package.json b/package.json
+index 6e7b413..12b5100 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.5",
++  "version": "1.1.6",
+   "description": "Sequelize database module and model manager for Ensto",
+   "author": "Les Désespérés",
+   "license": "MIT",
+diff --git a/src/models/Employee.ts b/src/models/Employee.ts
+index 403a847..282368b 100644
+--- a/src/models/Employee.ts
++++ b/src/models/Employee.ts
+@@ -9,6 +9,8 @@ interface EmployeeAttributes {
+     username: string;
+     badgeUuid: string;
+     passwordHash: string;
++    firstName: string;
++    lastName: string;
+     role: EmployeeRole;
+ }
+ 
+@@ -28,6 +30,8 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+         declare username: string;
+         declare badgeUuid: string;
+         declare passwordHash: string;
++        declare firstName: string;
++        declare lastName: string;
+         declare role: EmployeeRole;
+     }
+ 
+@@ -44,6 +48,16 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+                 allowNull: false,
+                 unique: true,
+             },
++            lastName: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                unique: false,
++            },
++            firstName: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                unique: false,
++            },
+             badgeUuid: {
+                 type: DataTypes.STRING(8),
+                 allowNull: false,
+@@ -67,7 +81,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+             sequelize,
+             modelName: 'Employee',
+             tableName: 'employees',
+-            timestamps: false,
++            timestamps: true,
+             hooks: {
+                 beforeCreate: (employee: EmployeeInstance) => {
+                     if (employee.passwordHash) {
+
+commit 5f424c93000316638ccf8587996822efa6569c71
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:37:50 2026 +0100
+
+    fix: correct spelling of 'Magasinier' in mock data for warehouse employees
+---
+ mock_data.sql | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mock_data.sql b/mock_data.sql
+index fbbe78f..7f7a750 100644
+--- a/mock_data.sql
++++ b/mock_data.sql
+@@ -11,7 +11,7 @@ ALTER TABLE `employees` AUTO_INCREMENT = 1;
+ 
+ INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `role`)
+ VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Admin'),
+-       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Magasinié'),
++       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Magasinier'),
+        (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Personnel');
+ 
+ -- --------------------------------------------------------
+
+commit a06960d80e6f82ef8028dbdd90f902956aa140a6
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:26:35 2026 +0100
+
+    feat: increment version to 1.1.5 in package.json
+---
+ package.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/package.json b/package.json
+index 9174745..6e7b413 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.4",
++  "version": "1.1.5",
+   "description": "Sequelize database module and model manager for Ensto",
+   "author": "Les Désespérés",
+   "license": "MIT",
+
+commit 7b9c0e6d3691c7f1c282dfacd4be41b72a2482b9
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:26:20 2026 +0100
+
+    feat: export EmployeeRole type for improved accessibility
+---
+ src/models/Employee.ts | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/models/Employee.ts b/src/models/Employee.ts
+index 1a6e650..403a847 100644
+--- a/src/models/Employee.ts
++++ b/src/models/Employee.ts
+@@ -2,7 +2,7 @@ import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
+ import defaultSequelize from '../config/db';
+ import { hashSHA256 } from '../utils/crypto';
+ 
+-type EmployeeRole = 'Admin' | 'Magasinier' | 'Personnel';
++export type EmployeeRole = 'Admin' | 'Magasinier' | 'Personnel';
+ 
+ interface EmployeeAttributes {
+     employeeId: number;
+
+commit 5a16340cccd89c6c151eb3a521bf7a305dc6c15c
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:25:26 2026 +0100
+
+    feat: update roles in mock data for warehouse employees
+---
+ mock_data.sql | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/mock_data.sql b/mock_data.sql
+index 1481c6f..fbbe78f 100644
+--- a/mock_data.sql
++++ b/mock_data.sql
+@@ -11,8 +11,8 @@ ALTER TABLE `employees` AUTO_INCREMENT = 1;
+ 
+ INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `role`)
+ VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Admin'),
+-       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'WarehouseWorker'),
+-       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'WarehouseWorker');
++       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'Magasinié'),
++       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'Personnel');
+ 
+ -- --------------------------------------------------------
+ -- 2. Mock Data for Delivery Drivers (Livreurs)
+
+commit ad6560684ade799e8275bb4fb12301218f5f3639
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 16:21:49 2026 +0100
+
+    feat: update Employee model roles and increment version in package.json
+---
+ package.json           | 2 +-
+ src/models/Employee.ts | 8 +++++---
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/package.json b/package.json
+index 114f30b..9174745 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.3",
++  "version": "1.1.4",
+   "description": "Sequelize database module and model manager for Ensto",
+   "author": "Les Désespérés",
+   "license": "MIT",
+diff --git a/src/models/Employee.ts b/src/models/Employee.ts
+index 36c1bb0..1a6e650 100644
+--- a/src/models/Employee.ts
++++ b/src/models/Employee.ts
+@@ -2,12 +2,14 @@ import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
+ import defaultSequelize from '../config/db';
+ import { hashSHA256 } from '../utils/crypto';
+ 
++type EmployeeRole = 'Admin' | 'Magasinier' | 'Personnel';
++
+ interface EmployeeAttributes {
+     employeeId: number;
+     username: string;
+     badgeUuid: string;
+     passwordHash: string;
+-    role: 'Admin' | 'WarehouseWorker';
++    role: EmployeeRole;
+ }
+ 
+ interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'employeeId'> {}
+@@ -26,7 +28,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+         declare username: string;
+         declare badgeUuid: string;
+         declare passwordHash: string;
+-        declare role: 'Admin' | 'WarehouseWorker';
++        declare role: EmployeeRole;
+     }
+ 
+     Employee.init(
+@@ -57,7 +59,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+                 field: 'password_hash',
+             },
+             role: {
+-                type: DataTypes.ENUM('Admin', 'WarehouseWorker'),
++                type: DataTypes.ENUM('Admin', 'Magasinié', 'Personnel'),
+                 allowNull: false,
+             },
+         },
+
+commit cf891d6a71fbcf8c252bc9a4fe562c5e0659c748
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Tue Mar 17 15:05:16 2026 +0100
+
+    feat: add badgeUuid attribute to Employee model and update related files
+---
+ README.md                   |  1 +
+ docs/USAGE.md               |  2 ++
+ mock_data.sql               |  8 ++++----
+ package.json                |  2 +-
+ src/models/Employee.ts      | 11 +++++++++++
+ test/ensto-database.test.js |  1 +
+ 6 files changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/README.md b/README.md
+index a6f97b3..6a1b84e 100644
+--- a/README.md
++++ b/README.md
+@@ -36,6 +36,7 @@ async function main() {
+ 
+   const employee = await db.models.Employee.create({
+     username: 'admin',
++    badgeUuid: 'B053AF25',
+     passwordHash: 'plain-password',
+     role: 'Admin',
+   });
+diff --git a/docs/USAGE.md b/docs/USAGE.md
+index 5863cb5..aaeb6d5 100644
+--- a/docs/USAGE.md
++++ b/docs/USAGE.md
+@@ -67,6 +67,7 @@ async function main() {
+ 
+   const employee = await db.models.Employee.create({
+     username: 'admin',
++    badgeUuid: 'B053AF25',
+     passwordHash: 'plain-password',
+     role: 'Admin',
+   });
+@@ -159,6 +160,7 @@ Fields:
+ 
+ - `employeeId`
+ - `username`
++- `badgeUuid` (8-char uppercase hex RFID UUID, maps to `badge_uuid`)
+ - `passwordHash`
+ - `role`
+ 
+diff --git a/mock_data.sql b/mock_data.sql
+index d69acc3..1481c6f 100644
+--- a/mock_data.sql
++++ b/mock_data.sql
+@@ -9,10 +9,10 @@ DELETE
+ FROM `employees`;
+ ALTER TABLE `employees` AUTO_INCREMENT = 1;
+ 
+-INSERT INTO `employees` (`employee_id`, `username`, `password_hash`, `role`)
+-VALUES (1, 'jdupont_admin', SHA2('Admin123!', 256), 'Admin'),
+-       (2, 'mlefevre_wh', SHA2('Worker123!', 256), 'WarehouseWorker'),
+-       (3, 'aleroi_wh', SHA2('Worker123!', 256), 'WarehouseWorker');
++INSERT INTO `employees` (`employee_id`, `username`, `badge_uuid`, `password_hash`, `role`)
++VALUES (1, 'jdupont_admin', 'B053AF25', SHA2('Admin123!', 256), 'Admin'),
++       (2, 'mlefevre_wh', 'A1C9D4F0', SHA2('Worker123!', 256), 'WarehouseWorker'),
++       (3, 'aleroi_wh', '9E77BC12', SHA2('Worker123!', 256), 'WarehouseWorker');
+ 
+ -- --------------------------------------------------------
+ -- 2. Mock Data for Delivery Drivers (Livreurs)
+diff --git a/package.json b/package.json
+index ae705b3..114f30b 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.2",
++  "version": "1.1.3",
+   "description": "Sequelize database module and model manager for Ensto",
+   "author": "Les Désespérés",
+   "license": "MIT",
+diff --git a/src/models/Employee.ts b/src/models/Employee.ts
+index 49f0170..36c1bb0 100644
+--- a/src/models/Employee.ts
++++ b/src/models/Employee.ts
+@@ -5,6 +5,7 @@ import { hashSHA256 } from '../utils/crypto';
+ interface EmployeeAttributes {
+     employeeId: number;
+     username: string;
++    badgeUuid: string;
+     passwordHash: string;
+     role: 'Admin' | 'WarehouseWorker';
+ }
+@@ -23,6 +24,7 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+     class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
+         declare employeeId: number;
+         declare username: string;
++        declare badgeUuid: string;
+         declare passwordHash: string;
+         declare role: 'Admin' | 'WarehouseWorker';
+     }
+@@ -40,6 +42,15 @@ export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
+                 allowNull: false,
+                 unique: true,
+             },
++            badgeUuid: {
++                type: DataTypes.STRING(8),
++                allowNull: false,
++                unique: true,
++                field: 'badge_uuid',
++                validate: {
++                    is: /^[A-F0-9]{8}$/,
++                },
++            },
+             passwordHash: {
+                 type: DataTypes.STRING,
+                 allowNull: false,
+diff --git a/test/ensto-database.test.js b/test/ensto-database.test.js
+index 6055594..f3312a5 100644
+--- a/test/ensto-database.test.js
++++ b/test/ensto-database.test.js
+@@ -162,6 +162,7 @@ async function run() {
+ 
+     const employee = db.models.Employee.build({
+       username: 'admin',
++      badgeUuid: 'B053AF25',
+       passwordHash: 'plain-password',
+       role: 'Admin',
+     });
+
+commit 882cc2dfbf5c9417bb9a653ad425b4717a40656f
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Thu Mar 12 20:24:20 2026 +0100
+
+    feat: add MIT license and update package.json with author, license, and repository info
+---
+ LICENSE      | 22 ++++++++++++++++++++++
+ README.md    |  4 ++++
+ package.json | 23 +++++++++++++++++++++--
+ 3 files changed, 47 insertions(+), 2 deletions(-)
+
+diff --git a/LICENSE b/LICENSE
+new file mode 100644
+index 0000000..b6a8a98
+--- /dev/null
++++ b/LICENSE
+@@ -0,0 +1,22 @@
++MIT License
++
++Copyright (c) 2026 Les Désespérés
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
+diff --git a/README.md b/README.md
+index cbc3354..a6f97b3 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,9 @@
+ # @les-desesperes/ensto-db
+ 
++[![npm version](https://img.shields.io/npm/v/@les-desesperes/ensto-db.svg)](https://www.npmjs.com/package/@les-desesperes/ensto-db)
++[![license](https://img.shields.io/npm/l/@les-desesperes/ensto-db.svg)](./LICENSE)
++[![GitHub](https://img.shields.io/badge/github-Les--Desesperes%2Fensto__database__module-blue?logo=github)](https://github.com/Les-Desesperes/ensto_database_module)
++
+ Sequelize-based database module for Ensto applications.
+ 
+ It provides:
+diff --git a/package.json b/package.json
+index 969db8f..ae705b3 100644
+--- a/package.json
++++ b/package.json
+@@ -1,9 +1,28 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.1.0",
++  "version": "1.1.2",
+   "description": "Sequelize database module and model manager for Ensto",
++  "author": "Les Désespérés",
++  "license": "MIT",
+   "main": "dist/index.js",
+   "types": "dist/index.d.ts",
++  "keywords": [
++    "sequelize",
++    "mysql",
++    "orm",
++    "ensto",
++    "database",
++    "models",
++    "typescript"
++  ],
++  "repository": {
++    "type": "git",
++    "url": "git+https://github.com/Les-Desesperes/ensto_database_module.git"
++  },
++  "bugs": {
++    "url": "https://github.com/Les-Desesperes/ensto_database_module/issues"
++  },
++  "homepage": "https://github.com/Les-Desesperes/ensto_database_module#readme",
+   "files": [
+     "dist",
+     "docs"
+@@ -23,4 +42,4 @@
+     "rimraf": "^5.0.5",
+     "typescript": "^5.4.5"
+   }
+-}
+\ No newline at end of file
++}
+
+commit c722b897461ae2eca88cf7522a1bded12961c09f
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Thu Mar 12 20:03:59 2026 +0100
+
+    feat: enhance EnstoDatabase with dynamic model registration and improved Sequelize integration
+---
+ README.md                     | 172 +++++++++-----------
+ docs/USAGE.md                 | 355 ++++++++++++++++++++++++++++++++++++++++++
+ package.json                  |   9 +-
+ pnpm-lock.yaml                | 325 ++++++++++++++++++++++++++++++--------
+ src/config/db.ts              |  77 +++++++--
+ src/database/EnstoDatabase.ts | 108 +++++++++++++
+ src/database/index.ts         |   2 +
+ src/index.ts                  |   7 +-
+ src/models/DeliveryDriver.ts  | 156 ++++++++++---------
+ src/models/Employee.ts        | 109 +++++++------
+ src/models/HistoryLog.ts      |  91 ++++++-----
+ src/models/Vehicle.ts         |  81 ++++++----
+ src/models/Visitor.ts         |  87 ++++++-----
+ src/models/index.ts           |  84 ++++++----
+ test/ensto-database.test.js   | 196 +++++++++++++++++++++++
+ 15 files changed, 1432 insertions(+), 427 deletions(-)
+
+diff --git a/README.md b/README.md
+index c5c57f6..cbc3354 100644
+--- a/README.md
++++ b/README.md
+@@ -1,11 +1,13 @@
+ # @les-desesperes/ensto-db
+ 
+-Database module for Ensto built with Sequelize + MySQL.
++Sequelize-based database module for Ensto applications.
+ 
+ It provides:
+-- a preconfigured Sequelize instance
+-- domain models (`Employee`, `DeliveryDriver`, `Vehicle`, `Visitor`, `HistoryLog`)
+-- crypto helpers for AES-256 encryption/decryption and SHA-256 hashing
++- an `EnstoDatabase` class for connection lifecycle and model management
++- built-in Ensto models with associations
++- dynamic model registration and schema-based model creation
++- a singleton `sequelize` export for compatibility
++- crypto helpers for hashing and AES encryption/decryption
+ 
+ ## Installation
+ 
+@@ -13,131 +15,111 @@ It provides:
+ pnpm add @les-desesperes/ensto-db
+ ```
+ 
+-## Exports
++## Documentation
+ 
+-From `src/index.ts`, the package exports:
+-- `sequelize` (default export from `src/config/db.ts`)
+-- all models from `src/models`
+-- crypto utilities from `src/utils/crypto`
+-
+-Example:
+-
+-```ts
+-import {
+-  sequelize,
+-  Employee,
+-  DeliveryDriver,
+-  Vehicle,
+-  Visitor,
+-  HistoryLog,
+-  encryptAES,
+-  decryptAES,
+-  hashSHA256,
+-} from '@lesdesesperes/ensto-db';
+-```
+-
+-## Configuration
+-
+-This module reads environment variables through `dotenv`.
+-
+-Create a `.env` file in your app:
+-
+-```env
+-MYSQL_DATABASE=ensto
+-MYSQL_USER=root
+-MYSQL_PASSWORD=secret
+-MYSQL_HOST=127.0.0.1
+-MYSQL_PORT=3306
+-ENCRYPTION_KEY=your-32-byte-secret-key-string!!
+-```
+-
+-Required variables:
+-- `MYSQL_DATABASE`
+-- `MYSQL_USER`
+-- `MYSQL_PASSWORD`
+-- `MYSQL_HOST`
+-- `MYSQL_PORT` (optional, defaults to `3306`)
+-- `ENCRYPTION_KEY` (recommended; fallback exists but should not be used in production)
++Detailed usage documentation is available in [`docs/USAGE.md`](./docs/USAGE.md).
+ 
+ ## Quick Start
+ 
+ ```ts
+-import { sequelize, Employee, DeliveryDriver } from '@lesdesesperes/ensto-db';
++import { EnstoDatabase } from '@les-desesperes/ensto-db';
+ 
+ async function main() {
+-  await sequelize.authenticate();
++  const db = new EnstoDatabase();
+ 
+-  const admin = await Employee.create({
++  await db.authenticate();
++  await db.sync();
++
++  const employee = await db.models.Employee.create({
+     username: 'admin',
+-    passwordHash: 'plain-text-password', // gets hashed by model hook
++    passwordHash: 'plain-password',
+     role: 'Admin',
+   });
+ 
+-  const driver = await DeliveryDriver.create({
+-    encryptedFirstName: 'John', // gets encrypted by model hook
+-    encryptedLastName: 'Doe',   // gets encrypted by model hook
+-    company: 'Acme Logistics',
+-    ppeCharterValid: true,
+-    ppeSignatureDate: new Date(),
+-  });
++  console.log(employee.employeeId);
+ 
+-  console.log(admin.employeeId, driver.driverId);
++  await db.close();
+ }
+ 
+ main().catch(console.error);
+ ```
+ 
+-## Models
++## Main Exports
++
++```ts
++import {
++  EnstoDatabase,
++  sequelize,
++  createSequelizeInstance,
++  getEnvDatabaseConfig,
++  initModels,
++  Employee,
++  DeliveryDriver,
++  Vehicle,
++  Visitor,
++  HistoryLog,
++  encryptAES,
++  decryptAES,
++  hashSHA256,
++} from '@les-desesperes/ensto-db';
++```
++
++## Built-in Models
+ 
+ - `Employee`
+-  - fields: `employeeId`, `username`, `passwordHash`, `role`
+-  - behavior: `passwordHash` is SHA-256 hashed in create/update hooks
+ - `DeliveryDriver`
+-  - fields: `driverId`, `encryptedLastName`, `encryptedFirstName`, `company`, `ppeCharterValid`, `ppeSignatureDate`
+-  - behavior: first/last name fields are AES-encrypted before save and decrypted after fetch
+ - `Vehicle`
+-  - fields: `vehicleId`, `licensePlate`, `vehicleType`, `driverId`
+ - `Visitor`
+-  - fields: `visitorId`, `fullName`, `company`, `arrivalTime`
+ - `HistoryLog`
+-  - fields: `logId`, `dateTime`, `actionType`, `details`, plus nullable relation ids
+ 
+-### Associations
++## Dynamic Models
+ 
+-Defined in `src/models/index.ts`:
+-- `DeliveryDriver` has many `Vehicle`
+-- `Employee` has many `HistoryLog`
+-- `Vehicle` has many `HistoryLog`
+-- `DeliveryDriver` has many `HistoryLog`
+-- `Visitor` has many `HistoryLog`
++```ts
++import { DataTypes } from 'sequelize';
++import { EnstoDatabase } from '@les-desesperes/ensto-db';
++
++const db = new EnstoDatabase();
++
++const Contractor = db.createModel(
++  'Contractor',
++  {
++    contractorId: {
++      type: DataTypes.INTEGER.UNSIGNED,
++      autoIncrement: true,
++      primaryKey: true,
++    },
++    companyName: {
++      type: DataTypes.STRING,
++      allowNull: false,
++    },
++  },
++  {
++    tableName: 'contractors',
++    timestamps: false,
++  }
++);
++```
+ 
+-## Crypto Utilities
++## Environment Variables
+ 
+-- `encryptAES(text: string): string`
+-- `decryptAES(encryptedText: string): string`
+-- `hashSHA256(text: string): string`
++```env
++MYSQL_DATABASE=ensto
++MYSQL_USER=root
++MYSQL_PASSWORD=secret
++MYSQL_HOST=127.0.0.1
++MYSQL_PORT=3306
++ENCRYPTION_KEY=your-32-byte-secret-key-string!!
++```
+ 
+ ## Development
+ 
+-Install dependencies:
+-
+ ```bash
+ pnpm install
+-```
+-
+-Build TypeScript:
+-
+-```bash
+ pnpm run build
++pnpm test
+ ```
+ 
+-Package output:
+-- JS: `dist/index.js`
+-- Types: `dist/index.d.ts`
+-
+-## Notes
+-
+-- This package targets CommonJS output (`tsconfig.json` -> `"module": "CommonJS"`).
+-- There is currently no test script in `package.json`.
+-- `prepublishOnly` runs the build automatically before publishing.
++## Publish Notes
+ 
++This release includes the new `EnstoDatabase` API and dynamic model support.
++See the full guide in [`docs/USAGE.md`](./docs/USAGE.md) before publishing.
+diff --git a/docs/USAGE.md b/docs/USAGE.md
+new file mode 100644
+index 0000000..5863cb5
+--- /dev/null
++++ b/docs/USAGE.md
+@@ -0,0 +1,355 @@
++# Ensto DB Usage Guide
++
++This guide documents the main API exposed by `@les-desesperes/ensto-db`.
++
++## Table of Contents
++
++- [Installation](#installation)
++- [Environment Variables](#environment-variables)
++- [Recommended Usage: `EnstoDatabase`](#recommended-usage-enstodatabase)
++- [Connection Options](#connection-options)
++- [Built-in Models](#built-in-models)
++- [Dynamic Models](#dynamic-models)
++- [Singleton Compatibility API](#singleton-compatibility-api)
++- [Crypto Utilities](#crypto-utilities)
++- [Development](#development)
++
++## Installation
++
++```bash
++pnpm add @les-desesperes/ensto-db
++```
++
++## Environment Variables
++
++The package reads database configuration from environment variables through `dotenv`.
++
++```env
++MYSQL_DATABASE=ensto
++MYSQL_USER=root
++MYSQL_PASSWORD=secret
++MYSQL_HOST=127.0.0.1
++MYSQL_PORT=3306
++ENCRYPTION_KEY=your-32-byte-secret-key-string!!
++```
++
++### Variables
++
++- `MYSQL_DATABASE`
++- `MYSQL_USER`
++- `MYSQL_PASSWORD`
++- `MYSQL_HOST`
++- `MYSQL_PORT` optional, defaults to `3306`
++- `ENCRYPTION_KEY` recommended for AES encryption support
++
++## Recommended Usage: `EnstoDatabase`
++
++`EnstoDatabase` is the main high-level API for this package.
++
++It gives you:
++
++- a managed Sequelize instance
++- built-in Ensto models
++- `authenticate()` and `sync()` helpers
++- runtime model registration
++- dynamic schema creation support
++
++### Quick Start
++
++```ts
++import { EnstoDatabase } from '@les-desesperes/ensto-db';
++
++async function main() {
++  const db = new EnstoDatabase();
++
++  await db.authenticate();
++  await db.sync();
++
++  const employee = await db.models.Employee.create({
++    username: 'admin',
++    passwordHash: 'plain-password',
++    role: 'Admin',
++  });
++
++  console.log(employee.employeeId);
++
++  await db.close();
++}
++
++main().catch(console.error);
++```
++
++### Available instance methods
++
++#### `authenticate(): Promise<this>`
++
++Delegates to `sequelize.authenticate()` and returns the current `EnstoDatabase` instance.
++
++#### `sync(options?): Promise<this>`
++
++Delegates to `sequelize.sync(options)` and returns the current `EnstoDatabase` instance.
++
++#### `close(): Promise<void>`
++
++Closes the underlying Sequelize connection.
++
++#### `initDefaultModels()`
++
++Initializes the built-in models on the current Sequelize instance.
++
++#### `getModel(name)`
++
++Returns a model by name from the registered models map.
++
++#### `registerModel(name, factory)`
++
++Registers a model using a Sequelize-aware factory function.
++
++#### `createModel(name, attributes, options)`
++
++Creates and registers a Sequelize model directly from a schema definition.
++
++## Connection Options
++
++You can build an `EnstoDatabase` instance from:
++
++- environment variables
++- a custom connection config
++- an existing Sequelize instance
++
++### Using package-managed connection options
++
++```ts
++import { EnstoDatabase } from '@les-desesperes/ensto-db';
++
++const db = new EnstoDatabase({
++  connection: {
++    database: 'ensto',
++    username: 'root',
++    password: 'secret',
++    host: '127.0.0.1',
++    port: 3306,
++    logging: false,
++  },
++});
++```
++
++### Using a custom Sequelize instance
++
++```ts
++import { EnstoDatabase, createSequelizeInstance } from '@les-desesperes/ensto-db';
++
++const sequelize = createSequelizeInstance({
++  database: 'ensto',
++  username: 'root',
++  password: 'secret',
++  host: '127.0.0.1',
++});
++
++const db = new EnstoDatabase({ sequelize });
++```
++
++## Built-in Models
++
++The package initializes the following built-in models by default.
++
++### `Employee`
++
++Fields:
++
++- `employeeId`
++- `username`
++- `passwordHash`
++- `role`
++
++Behavior:
++
++- hashes `passwordHash` with SHA-256 before create/update
++
++### `DeliveryDriver`
++
++Fields:
++
++- `driverId`
++- `encryptedLastName`
++- `encryptedFirstName`
++- `company`
++- `ppeCharterValid`
++- `ppeSignatureDate`
++
++Behavior:
++
++- encrypts first/last names before save
++- decrypts first/last names after fetch
++
++### `Vehicle`
++
++Fields:
++
++- `vehicleId`
++- `licensePlate`
++- `vehicleType`
++- `driverId`
++
++### `Visitor`
++
++Fields:
++
++- `visitorId`
++- `fullName`
++- `company`
++- `arrivalTime`
++
++### `HistoryLog`
++
++Fields:
++
++- `logId`
++- `dateTime`
++- `actionType`
++- `details`
++- optional relation ids to employee/vehicle/driver/visitor
++
++### Built-in associations
++
++- `DeliveryDriver.hasMany(Vehicle)`
++- `Vehicle.belongsTo(DeliveryDriver)`
++- `Employee.hasMany(HistoryLog)`
++- `Vehicle.hasMany(HistoryLog)`
++- `DeliveryDriver.hasMany(HistoryLog)`
++- `Visitor.hasMany(HistoryLog)`
++
++## Dynamic Models
++
++### `registerModel()` example
++
++Use this when you want full control over the model class.
++
++```ts
++import { DataTypes, Model } from 'sequelize';
++import { EnstoDatabase } from '@les-desesperes/ensto-db';
++
++const db = new EnstoDatabase();
++
++const Badge = db.registerModel('Badge', (sequelize) => {
++  class Badge extends Model {
++    declare badgeId: number;
++    declare label: string;
++  }
++
++  Badge.init(
++    {
++      badgeId: {
++        type: DataTypes.INTEGER.UNSIGNED,
++        autoIncrement: true,
++        primaryKey: true,
++      },
++      label: {
++        type: DataTypes.STRING,
++        allowNull: false,
++      },
++    },
++    {
++      sequelize,
++      modelName: 'Badge',
++      tableName: 'badges',
++      timestamps: false,
++    }
++  );
++
++  return Badge;
++});
++```
++
++### `createModel()` example
++
++Use this when a schema object is enough.
++
++```ts
++import { DataTypes } from 'sequelize';
++import { EnstoDatabase } from '@les-desesperes/ensto-db';
++
++const db = new EnstoDatabase();
++
++const Contractor = db.createModel(
++  'Contractor',
++  {
++    contractorId: {
++      type: DataTypes.INTEGER.UNSIGNED,
++      autoIncrement: true,
++      primaryKey: true,
++    },
++    companyName: {
++      type: DataTypes.STRING,
++      allowNull: false,
++    },
++  },
++  {
++    tableName: 'contractors',
++    timestamps: false,
++  }
++);
++```
++
++### Dynamic associations
++
++```ts
++import { DataTypes } from 'sequelize';
++
++const BadgeEvent = db.createModel(
++  'BadgeEvent',
++  {
++    badgeEventId: {
++      type: DataTypes.INTEGER.UNSIGNED,
++      autoIncrement: true,
++      primaryKey: true,
++    },
++    employeeId: {
++      type: DataTypes.INTEGER.UNSIGNED,
++      allowNull: false,
++    },
++  },
++  {
++    tableName: 'badge_events',
++    timestamps: false,
++    associate: (model, models) => {
++      model.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
++      models.Employee.hasMany(model, { foreignKey: 'employeeId', as: 'badgeEvents' });
++    },
++  }
++);
++```
++
++## Singleton Compatibility API
++
++The original singleton-style export is still available.
++
++```ts
++import { sequelize, Employee } from '@les-desesperes/ensto-db';
++
++await sequelize.authenticate();
++const users = await Employee.findAll();
++```
++
++## Crypto Utilities
++
++The package also exports:
++
++- `encryptAES(text: string): string`
++- `decryptAES(encryptedText: string): string`
++- `hashSHA256(text: string): string`
++
++## Development
++
++```bash
++pnpm install
++pnpm run build
++pnpm test
++```
++
++## Notes
++
++- The package emits CommonJS output from TypeScript.
++- `README.md` is the package landing page.
++- This `docs/USAGE.md` file is included for deeper project/package documentation.
++
+diff --git a/package.json b/package.json
+index 1144936..969db8f 100644
+--- a/package.json
++++ b/package.json
+@@ -1,17 +1,20 @@
+ {
+   "name": "@les-desesperes/ensto-db",
+-  "version": "1.0.0",
+-  "description": "Database models and connection for Ensto",
++  "version": "1.1.0",
++  "description": "Sequelize database module and model manager for Ensto",
+   "main": "dist/index.js",
+   "types": "dist/index.d.ts",
+   "files": [
+-    "dist"
++    "dist",
++    "docs"
+   ],
+   "scripts": {
+     "build": "rimraf dist && tsc",
++    "test": "pnpm run build && node test/ensto-database.test.js",
+     "prepublishOnly": "pnpm run build"
+   },
+   "dependencies": {
++    "dotenv": "^16.4.7",
+     "mysql2": "^3.9.7",
+     "sequelize": "^6.37.3"
+   },
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 1b8513d..700c5ed 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -9,50 +9,83 @@ importers:
+   .:
+     dependencies:
+       dotenv:
+-        specifier: ^17.3.1
+-        version: 17.3.1
++        specifier: ^16.4.7
++        version: 16.6.1
+       mysql2:
+-        specifier: ^3.19.1
+-        version: 3.19.1(@types/node@25.5.0)
++        specifier: ^3.9.7
++        version: 3.19.1(@types/node@20.19.37)
+       sequelize:
+-        specifier: ^6.37.8
+-        version: 6.37.8(mysql2@3.19.1(@types/node@25.5.0))
++        specifier: ^6.37.3
++        version: 6.37.8(mysql2@3.19.1(@types/node@20.19.37))
+     devDependencies:
+       '@types/node':
+-        specifier: ^25.5.0
+-        version: 25.5.0
++        specifier: ^20.0.0
++        version: 20.19.37
+       rimraf:
+-        specifier: ^6.1.3
+-        version: 6.1.3
++        specifier: ^5.0.5
++        version: 5.0.10
+       typescript:
+-        specifier: ^5.9.3
++        specifier: ^5.4.5
+         version: 5.9.3
+ 
+ packages:
+ 
++  '@isaacs/cliui@8.0.2':
++    resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
++    engines: {node: '>=12'}
++
++  '@pkgjs/parseargs@0.11.0':
++    resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
++    engines: {node: '>=14'}
++
+   '@types/debug@4.1.12':
+     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
+ 
+   '@types/ms@2.1.0':
+     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
+ 
+-  '@types/node@25.5.0':
+-    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
++  '@types/node@20.19.37':
++    resolution: {integrity: sha512-8kzdPJ3FsNsVIurqBs7oodNnCEVbni9yUEkaHbgptDACOPW04jimGagZ51E6+lXUwJjgnBw+hyko/lkFWCldqw==}
+ 
+   '@types/validator@13.15.10':
+     resolution: {integrity: sha512-T8L6i7wCuyoK8A/ZeLYt1+q0ty3Zb9+qbSSvrIVitzT3YjZqkTZ40IbRsPanlB4h1QB3JVL1SYCdR6ngtFYcuA==}
+ 
++  ansi-regex@5.0.1:
++    resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
++    engines: {node: '>=8'}
++
++  ansi-regex@6.2.2:
++    resolution: {integrity: sha512-Bq3SmSpyFHaWjPk8If9yc6svM8c56dB5BAtW4Qbw5jHTwwXXcTLoRMkpDJp6VL0XzlWaCHTXrkFURMYmD0sLqg==}
++    engines: {node: '>=12'}
++
++  ansi-styles@4.3.0:
++    resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
++    engines: {node: '>=8'}
++
++  ansi-styles@6.2.3:
++    resolution: {integrity: sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg==}
++    engines: {node: '>=12'}
++
+   aws-ssl-profiles@1.1.2:
+     resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
+     engines: {node: '>= 6.0.0'}
+ 
+-  balanced-match@4.0.4:
+-    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
+-    engines: {node: 18 || 20 || >=22}
++  balanced-match@1.0.2:
++    resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
++
++  brace-expansion@2.0.2:
++    resolution: {integrity: sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ==}
++
++  color-convert@2.0.1:
++    resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
++    engines: {node: '>=7.0.0'}
+ 
+-  brace-expansion@5.0.4:
+-    resolution: {integrity: sha512-h+DEnpVvxmfVefa4jFbCf5HdH5YMDXRsmKflpf1pILZWRFlTbJpxeU55nJl4Smt5HQaGzg1o6RHFPJaOqnmBDg==}
+-    engines: {node: 18 || 20 || >=22}
++  color-name@1.1.4:
++    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
++
++  cross-spawn@7.0.6:
++    resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
++    engines: {node: '>= 8'}
+ 
+   debug@4.4.3:
+     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
+@@ -67,19 +100,33 @@ packages:
+     resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
+     engines: {node: '>=0.10'}
+ 
+-  dotenv@17.3.1:
+-    resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
++  dotenv@16.6.1:
++    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+     engines: {node: '>=12'}
+ 
+   dottie@2.0.7:
+     resolution: {integrity: sha512-7lAK2A0b3zZr3UC5aE69CPdCFR4RHW1o2Dr74TqFykxkUCBXSRJum/yPc7g8zRHJqWKomPLHwFLLoUnn8PXXRg==}
+ 
++  eastasianwidth@0.2.0:
++    resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
++
++  emoji-regex@8.0.0:
++    resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
++
++  emoji-regex@9.2.2:
++    resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
++
++  foreground-child@3.3.1:
++    resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
++    engines: {node: '>=14'}
++
+   generate-function@2.3.1:
+     resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
+ 
+-  glob@13.0.6:
+-    resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
+-    engines: {node: 18 || 20 || >=22}
++  glob@10.5.0:
++    resolution: {integrity: sha512-DfXN8DfhJ7NH3Oe7cFmu3NCu1wKbkReJ8TorzSAFbSKrlNaQSKfIzqYqVY8zlbs2NLBbWpRiU52GX2PbaBVNkg==}
++    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
++    hasBin: true
+ 
+   iconv-lite@0.7.2:
+     resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
+@@ -89,26 +136,35 @@ packages:
+     resolution: {integrity: sha512-6I/HUDeYFfuNCVS3td055BaXBwKYuzw7K3ExVMStBowKo9oOAMJIXIHvdyR3iboTCp1b+1i5DSkIZTcwIktuDw==}
+     engines: {'0': node >= 0.4.0}
+ 
++  is-fullwidth-code-point@3.0.0:
++    resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
++    engines: {node: '>=8'}
++
+   is-property@1.0.2:
+     resolution: {integrity: sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g==}
+ 
++  isexe@2.0.0:
++    resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
++
++  jackspeak@3.4.3:
++    resolution: {integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==}
++
+   lodash@4.17.23:
+     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
+ 
+   long@5.3.2:
+     resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
+ 
+-  lru-cache@11.2.6:
+-    resolution: {integrity: sha512-ESL2CrkS/2wTPfuend7Zhkzo2u0daGJ/A2VucJOgQ/C48S/zB8MMeMHSGKYpXhIjbPxfuezITkaBH1wqv00DDQ==}
+-    engines: {node: 20 || >=22}
++  lru-cache@10.4.3:
++    resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
+ 
+   lru.min@1.1.4:
+     resolution: {integrity: sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==}
+     engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
+ 
+-  minimatch@10.2.4:
+-    resolution: {integrity: sha512-oRjTw/97aTBN0RHbYCdtF1MQfvusSIBQM0IZEgzl6426+8jSC0nF1a/GmnVLpfB9yyr6g6FTqWqiZVbxrtaCIg==}
+-    engines: {node: 18 || 20 || >=22}
++  minimatch@9.0.9:
++    resolution: {integrity: sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg==}
++    engines: {node: '>=16 || 14 >=14.17'}
+ 
+   minipass@7.1.3:
+     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
+@@ -136,9 +192,13 @@ packages:
+   package-json-from-dist@1.0.1:
+     resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
+ 
+-  path-scurry@2.0.2:
+-    resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
+-    engines: {node: 18 || 20 || >=22}
++  path-key@3.1.1:
++    resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
++    engines: {node: '>=8'}
++
++  path-scurry@1.11.1:
++    resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
++    engines: {node: '>=16 || 14 >=14.18'}
+ 
+   pg-connection-string@2.12.0:
+     resolution: {integrity: sha512-U7qg+bpswf3Cs5xLzRqbXbQl85ng0mfSV/J0nnA31MCLgvEaAo7CIhmeyrmJpOr7o+zm0rXK+hNnT5l9RHkCkQ==}
+@@ -146,9 +206,8 @@ packages:
+   retry-as-promised@7.1.1:
+     resolution: {integrity: sha512-hMD7odLOt3LkTjcif8aRZqi/hybjpLNgSk5oF5FCowfCjok6LukpN2bDX7R5wDmbgBQFn7YoBxSagmtXHaJYJw==}
+ 
+-  rimraf@6.1.3:
+-    resolution: {integrity: sha512-LKg+Cr2ZF61fkcaK1UdkH2yEBBKnYjTyWzTJT6KNPcSPaiT7HSdhtMXQuN5wkTX0Xu72KQ1l8S42rlmexS2hSA==}
+-    engines: {node: 20 || >=22}
++  rimraf@5.0.10:
++    resolution: {integrity: sha512-l0OE8wL34P4nJH/H2ffoaniAokM2qSmrtXHmlpvYr5AVVX8msAyW0l8NVJFDxlSK4u3Uh/f41cQheDVdnYijwQ==}
+     hasBin: true
+ 
+   safer-buffer@2.1.2:
+@@ -196,10 +255,38 @@ packages:
+       tedious:
+         optional: true
+ 
++  shebang-command@2.0.0:
++    resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
++    engines: {node: '>=8'}
++
++  shebang-regex@3.0.0:
++    resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
++    engines: {node: '>=8'}
++
++  signal-exit@4.1.0:
++    resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
++    engines: {node: '>=14'}
++
+   sql-escaper@1.3.3:
+     resolution: {integrity: sha512-BsTCV265VpTp8tm1wyIm1xqQCS+Q9NHx2Sr+WcnUrgLrQ6yiDIvHYJV5gHxsj1lMBy2zm5twLaZao8Jd+S8JJw==}
+     engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
+ 
++  string-width@4.2.3:
++    resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
++    engines: {node: '>=8'}
++
++  string-width@5.1.2:
++    resolution: {integrity: sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA==}
++    engines: {node: '>=12'}
++
++  strip-ansi@6.0.1:
++    resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
++    engines: {node: '>=8'}
++
++  strip-ansi@7.2.0:
++    resolution: {integrity: sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w==}
++    engines: {node: '>=12'}
++
+   toposort-class@1.0.1:
+     resolution: {integrity: sha512-OsLcGGbYF3rMjPUf8oKktyvCiUxSbqMMS39m33MAjLTC1DVIH6x3WSt63/M77ihI09+Sdfk1AXvfhCEeUmC7mg==}
+ 
+@@ -208,8 +295,8 @@ packages:
+     engines: {node: '>=14.17'}
+     hasBin: true
+ 
+-  undici-types@7.18.2:
+-    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
++  undici-types@6.21.0:
++    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+ 
+   uuid@8.3.2:
+     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+@@ -219,30 +306,77 @@ packages:
+     resolution: {integrity: sha512-spH26xU080ydGggxRyR1Yhcbgx+j3y5jbNXk/8L+iRvdIEQ4uTRH2Sgf2dokud6Q4oAtsbNvJ1Ft+9xmm6IZcA==}
+     engines: {node: '>= 0.10'}
+ 
++  which@2.0.2:
++    resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
++    engines: {node: '>= 8'}
++    hasBin: true
++
+   wkx@0.5.0:
+     resolution: {integrity: sha512-Xng/d4Ichh8uN4l0FToV/258EjMGU9MGcA0HV2d9B/ZpZB3lqQm7nkOdZdm5GhKtLLhAE7PiVQwN4eN+2YJJUg==}
+ 
++  wrap-ansi@7.0.0:
++    resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
++    engines: {node: '>=10'}
++
++  wrap-ansi@8.1.0:
++    resolution: {integrity: sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ==}
++    engines: {node: '>=12'}
++
+ snapshots:
+ 
++  '@isaacs/cliui@8.0.2':
++    dependencies:
++      string-width: 5.1.2
++      string-width-cjs: string-width@4.2.3
++      strip-ansi: 7.2.0
++      strip-ansi-cjs: strip-ansi@6.0.1
++      wrap-ansi: 8.1.0
++      wrap-ansi-cjs: wrap-ansi@7.0.0
++
++  '@pkgjs/parseargs@0.11.0':
++    optional: true
++
+   '@types/debug@4.1.12':
+     dependencies:
+       '@types/ms': 2.1.0
+ 
+   '@types/ms@2.1.0': {}
+ 
+-  '@types/node@25.5.0':
++  '@types/node@20.19.37':
+     dependencies:
+-      undici-types: 7.18.2
++      undici-types: 6.21.0
+ 
+   '@types/validator@13.15.10': {}
+ 
++  ansi-regex@5.0.1: {}
++
++  ansi-regex@6.2.2: {}
++
++  ansi-styles@4.3.0:
++    dependencies:
++      color-convert: 2.0.1
++
++  ansi-styles@6.2.3: {}
++
+   aws-ssl-profiles@1.1.2: {}
+ 
+-  balanced-match@4.0.4: {}
++  balanced-match@1.0.2: {}
++
++  brace-expansion@2.0.2:
++    dependencies:
++      balanced-match: 1.0.2
+ 
+-  brace-expansion@5.0.4:
++  color-convert@2.0.1:
+     dependencies:
+-      balanced-match: 4.0.4
++      color-name: 1.1.4
++
++  color-name@1.1.4: {}
++
++  cross-spawn@7.0.6:
++    dependencies:
++      path-key: 3.1.1
++      shebang-command: 2.0.0
++      which: 2.0.2
+ 
+   debug@4.4.3:
+     dependencies:
+@@ -250,19 +384,33 @@ snapshots:
+ 
+   denque@2.1.0: {}
+ 
+-  dotenv@17.3.1: {}
++  dotenv@16.6.1: {}
+ 
+   dottie@2.0.7: {}
+ 
++  eastasianwidth@0.2.0: {}
++
++  emoji-regex@8.0.0: {}
++
++  emoji-regex@9.2.2: {}
++
++  foreground-child@3.3.1:
++    dependencies:
++      cross-spawn: 7.0.6
++      signal-exit: 4.1.0
++
+   generate-function@2.3.1:
+     dependencies:
+       is-property: 1.0.2
+ 
+-  glob@13.0.6:
++  glob@10.5.0:
+     dependencies:
+-      minimatch: 10.2.4
++      foreground-child: 3.3.1
++      jackspeak: 3.4.3
++      minimatch: 9.0.9
+       minipass: 7.1.3
+-      path-scurry: 2.0.2
++      package-json-from-dist: 1.0.1
++      path-scurry: 1.11.1
+ 
+   iconv-lite@0.7.2:
+     dependencies:
+@@ -270,19 +418,29 @@ snapshots:
+ 
+   inflection@1.13.4: {}
+ 
++  is-fullwidth-code-point@3.0.0: {}
++
+   is-property@1.0.2: {}
+ 
++  isexe@2.0.0: {}
++
++  jackspeak@3.4.3:
++    dependencies:
++      '@isaacs/cliui': 8.0.2
++    optionalDependencies:
++      '@pkgjs/parseargs': 0.11.0
++
+   lodash@4.17.23: {}
+ 
+   long@5.3.2: {}
+ 
+-  lru-cache@11.2.6: {}
++  lru-cache@10.4.3: {}
+ 
+   lru.min@1.1.4: {}
+ 
+-  minimatch@10.2.4:
++  minimatch@9.0.9:
+     dependencies:
+-      brace-expansion: 5.0.4
++      brace-expansion: 2.0.2
+ 
+   minipass@7.1.3: {}
+ 
+@@ -294,9 +452,9 @@ snapshots:
+ 
+   ms@2.1.3: {}
+ 
+-  mysql2@3.19.1(@types/node@25.5.0):
++  mysql2@3.19.1(@types/node@20.19.37):
+     dependencies:
+-      '@types/node': 25.5.0
++      '@types/node': 20.19.37
+       aws-ssl-profiles: 1.1.2
+       denque: 2.1.0
+       generate-function: 2.3.1
+@@ -312,19 +470,20 @@ snapshots:
+ 
+   package-json-from-dist@1.0.1: {}
+ 
+-  path-scurry@2.0.2:
++  path-key@3.1.1: {}
++
++  path-scurry@1.11.1:
+     dependencies:
+-      lru-cache: 11.2.6
++      lru-cache: 10.4.3
+       minipass: 7.1.3
+ 
+   pg-connection-string@2.12.0: {}
+ 
+   retry-as-promised@7.1.1: {}
+ 
+-  rimraf@6.1.3:
++  rimraf@5.0.10:
+     dependencies:
+-      glob: 13.0.6
+-      package-json-from-dist: 1.0.1
++      glob: 10.5.0
+ 
+   safer-buffer@2.1.2: {}
+ 
+@@ -332,7 +491,7 @@ snapshots:
+ 
+   sequelize-pool@7.1.0: {}
+ 
+-  sequelize@6.37.8(mysql2@3.19.1(@types/node@25.5.0)):
++  sequelize@6.37.8(mysql2@3.19.1(@types/node@20.19.37)):
+     dependencies:
+       '@types/debug': 4.1.12
+       '@types/validator': 13.15.10
+@@ -351,22 +510,66 @@ snapshots:
+       validator: 13.15.26
+       wkx: 0.5.0
+     optionalDependencies:
+-      mysql2: 3.19.1(@types/node@25.5.0)
++      mysql2: 3.19.1(@types/node@20.19.37)
+     transitivePeerDependencies:
+       - supports-color
+ 
++  shebang-command@2.0.0:
++    dependencies:
++      shebang-regex: 3.0.0
++
++  shebang-regex@3.0.0: {}
++
++  signal-exit@4.1.0: {}
++
+   sql-escaper@1.3.3: {}
+ 
++  string-width@4.2.3:
++    dependencies:
++      emoji-regex: 8.0.0
++      is-fullwidth-code-point: 3.0.0
++      strip-ansi: 6.0.1
++
++  string-width@5.1.2:
++    dependencies:
++      eastasianwidth: 0.2.0
++      emoji-regex: 9.2.2
++      strip-ansi: 7.2.0
++
++  strip-ansi@6.0.1:
++    dependencies:
++      ansi-regex: 5.0.1
++
++  strip-ansi@7.2.0:
++    dependencies:
++      ansi-regex: 6.2.2
++
+   toposort-class@1.0.1: {}
+ 
+   typescript@5.9.3: {}
+ 
+-  undici-types@7.18.2: {}
++  undici-types@6.21.0: {}
+ 
+   uuid@8.3.2: {}
+ 
+   validator@13.15.26: {}
+ 
++  which@2.0.2:
++    dependencies:
++      isexe: 2.0.0
++
+   wkx@0.5.0:
+     dependencies:
+-      '@types/node': 25.5.0
++      '@types/node': 20.19.37
++
++  wrap-ansi@7.0.0:
++    dependencies:
++      ansi-styles: 4.3.0
++      string-width: 4.2.3
++      strip-ansi: 6.0.1
++
++  wrap-ansi@8.1.0:
++    dependencies:
++      ansi-styles: 6.2.3
++      string-width: 5.1.2
++      strip-ansi: 7.2.0
+diff --git a/src/config/db.ts b/src/config/db.ts
+index 049dff0..1270bfa 100644
+--- a/src/config/db.ts
++++ b/src/config/db.ts
+@@ -1,24 +1,67 @@
+-import { Sequelize } from 'sequelize';
++import { Options, Sequelize } from 'sequelize';
+ import dotenv from 'dotenv';
+ 
+ dotenv.config();
+ 
+-const sequelize = new Sequelize(
+-    process.env.MYSQL_DATABASE as string,
+-    process.env.MYSQL_USER as string,
+-    process.env.MYSQL_PASSWORD as string, // FIXED: use MYSQL_PASSWORD, not MYSQL_ROOT_PASSWORD
+-    {
+-        host: process.env.MYSQL_HOST,
+-        dialect: 'mysql',
+-        port: Number(process.env.MYSQL_PORT) || 3306,
+-        logging: false, // Change to console.log to see the generated SQL queries
+-        pool: {
+-            max: 10,
+-            min: 0,
+-            acquire: 30000,
+-            idle: 10000
+-        }
++export interface EnstoDatabaseConnectionOptions {
++    database?: string;
++    username?: string;
++    password?: string;
++    host?: string;
++    port?: number;
++    url?: string;
++    dialect?: 'mysql';
++    logging?: Options['logging'];
++    pool?: Options['pool'];
++    define?: Options['define'];
++    dialectOptions?: Options['dialectOptions'];
++}
++
++const DEFAULT_POOL: NonNullable<Options['pool']> = {
++    max: 10,
++    min: 0,
++    acquire: 30000,
++    idle: 10000,
++};
++
++export const getEnvDatabaseConfig = (): EnstoDatabaseConnectionOptions => ({
++    database: process.env.MYSQL_DATABASE,
++    username: process.env.MYSQL_USER,
++    password: process.env.MYSQL_PASSWORD,
++    host: process.env.MYSQL_HOST,
++    port: Number(process.env.MYSQL_PORT) || 3306,
++    dialect: 'mysql',
++    logging: false,
++    pool: DEFAULT_POOL,
++});
++
++const toSequelizeOptions = (options: EnstoDatabaseConnectionOptions): Options => ({
++    host: options.host,
++    port: options.port,
++    dialect: options.dialect ?? 'mysql',
++    logging: options.logging ?? false,
++    pool: options.pool ?? DEFAULT_POOL,
++    define: options.define,
++    dialectOptions: options.dialectOptions,
++});
++
++export const createSequelizeInstance = (
++    options: EnstoDatabaseConnectionOptions = getEnvDatabaseConfig()
++): Sequelize => {
++    const sequelizeOptions = toSequelizeOptions(options);
++
++    if (options.url) {
++        return new Sequelize(options.url, sequelizeOptions);
+     }
+-);
++
++    return new Sequelize(
++        options.database ?? '',
++        options.username ?? '',
++        options.password ?? '',
++        sequelizeOptions
++    );
++};
++
++const sequelize = createSequelizeInstance();
+ 
+ export default sequelize;
+\ No newline at end of file
+diff --git a/src/database/EnstoDatabase.ts b/src/database/EnstoDatabase.ts
+new file mode 100644
+index 0000000..78948c5
+--- /dev/null
++++ b/src/database/EnstoDatabase.ts
+@@ -0,0 +1,108 @@
++import {
++    InitOptions,
++    Model,
++    ModelAttributes,
++    ModelStatic,
++    Sequelize,
++    SyncOptions,
++} from 'sequelize';
++import defaultSequelize, {
++    createSequelizeInstance,
++    EnstoDatabaseConnectionOptions,
++} from '../config/db';
++import { EnstoModels, initModels } from '../models';
++
++export type RegisteredModel = ModelStatic<Model>;
++
++export interface EnstoDatabaseOptions {
++    sequelize?: Sequelize;
++    connection?: EnstoDatabaseConnectionOptions;
++    initializeDefaultModels?: boolean;
++}
++
++export interface DynamicModelOptions extends Omit<InitOptions<Model>, 'sequelize' | 'modelName'> {
++    associate?: (model: RegisteredModel, models: Sequelize['models']) => void;
++}
++
++export class EnstoDatabase {
++    public readonly sequelize: Sequelize;
++    public readonly models: Record<string, RegisteredModel> = {};
++
++    constructor(options: EnstoDatabaseOptions = {}) {
++        this.sequelize =
++            options.sequelize ??
++            (options.connection ? createSequelizeInstance(options.connection) : defaultSequelize);
++
++        if (options.initializeDefaultModels ?? true) {
++            this.initDefaultModels();
++        }
++    }
++
++    public initDefaultModels(): EnstoModels {
++        const builtInModels = initModels(this.sequelize);
++        Object.assign(this.models, builtInModels);
++        return builtInModels;
++    }
++
++    public async authenticate(): Promise<this> {
++        await this.sequelize.authenticate();
++        return this;
++    }
++
++    public async sync(options?: SyncOptions): Promise<this> {
++        await this.sequelize.sync(options);
++        return this;
++    }
++
++    public async close(): Promise<void> {
++        await this.sequelize.close();
++    }
++
++    public getModel<T extends RegisteredModel = RegisteredModel>(name: string): T | undefined {
++        return (this.models[name] ?? this.sequelize.models[name]) as T | undefined;
++    }
++
++    public registerModel<T extends RegisteredModel>(
++        name: string,
++        factory: (sequelize: Sequelize) => T
++    ): T {
++        const existingModel = this.getModel<T>(name);
++        if (existingModel) {
++            return existingModel;
++        }
++
++        const model = factory(this.sequelize);
++        this.models[name] = model;
++        return model;
++    }
++
++    public createModel(
++        name: string,
++        attributes: ModelAttributes<Model, Record<string, unknown>>,
++        options: DynamicModelOptions = {}
++    ): RegisteredModel {
++        const existingModel = this.getModel(name);
++        if (existingModel) {
++            return existingModel;
++        }
++
++        const { associate, ...initOptions } = options;
++
++        class DynamicModel extends Model {}
++
++        DynamicModel.init(attributes, {
++            ...initOptions,
++            sequelize: this.sequelize,
++            modelName: name,
++        });
++
++        const initializedModel = DynamicModel as RegisteredModel;
++        this.models[name] = initializedModel;
++
++        associate?.(initializedModel, this.sequelize.models);
++
++        return initializedModel;
++    }
++}
++
++
+diff --git a/src/database/index.ts b/src/database/index.ts
+new file mode 100644
+index 0000000..64660c3
+--- /dev/null
++++ b/src/database/index.ts
+@@ -0,0 +1,2 @@
++export * from './EnstoDatabase';
++
+diff --git a/src/index.ts b/src/index.ts
+index b2befbb..1c97384 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -1,3 +1,8 @@
+-export { default as sequelize } from './config/db';
++export {
++	default as sequelize,
++	createSequelizeInstance,
++	getEnvDatabaseConfig,
++} from './config/db';
++export * from './database';
+ export * from './models';
+ export * from './utils/crypto';
+\ No newline at end of file
+diff --git a/src/models/DeliveryDriver.ts b/src/models/DeliveryDriver.ts
+index 940d5e4..0323fd9 100644
+--- a/src/models/DeliveryDriver.ts
++++ b/src/models/DeliveryDriver.ts
+@@ -1,6 +1,6 @@
+-import { DataTypes, Model, Optional } from 'sequelize';
+-import sequelize from '../config/db';
+-import {decryptAES, encryptAES} from "@/utils/crypto";
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
++import { decryptAES, encryptAES } from '../utils/crypto';
+ 
+ interface DeliveryDriverAttributes {
+     driverId: number;
+@@ -13,78 +13,94 @@ interface DeliveryDriverAttributes {
+ 
+ interface DeliveryDriverCreationAttributes extends Optional<DeliveryDriverAttributes, 'driverId'> {}
+ 
+-class DeliveryDriver extends Model<DeliveryDriverAttributes, DeliveryDriverCreationAttributes> implements DeliveryDriverAttributes {
+-    public driverId!: number;
+-    public encryptedLastName!: string;
+-    public encryptedFirstName!: string;
+-    public company!: string;
+-    public ppeCharterValid!: boolean;
+-    public ppeSignatureDate!: Date | null;
+-}
++export type DeliveryDriverInstance = Model<DeliveryDriverAttributes, DeliveryDriverCreationAttributes> & DeliveryDriverAttributes;
++export type DeliveryDriverModel = ModelStatic<DeliveryDriverInstance>;
+ 
+-DeliveryDriver.init(
+-    {
+-        driverId: {
+-            type: DataTypes.INTEGER.UNSIGNED,
+-            autoIncrement: true,
+-            primaryKey: true,
+-            field: 'driver_id',
+-        },
+-        encryptedLastName: {
+-            type: DataTypes.STRING, // Constraint FC1: Needs AES-256 encryption before insert
+-            allowNull: false,
+-            field: 'encrypted_last_name',
+-        },
+-        encryptedFirstName: {
+-            type: DataTypes.STRING, // Constraint FC1: Needs AES-256 encryption before insert
+-            allowNull: false,
+-            field: 'encrypted_first_name',
+-        },
+-        company: {
+-            type: DataTypes.STRING,
+-            allowNull: false,
+-        },
+-        ppeCharterValid: {
+-            type: DataTypes.BOOLEAN,
+-            defaultValue: false,
+-            field: 'ppe_charter_valid',
+-        },
+-        ppeSignatureDate: {
+-            type: DataTypes.DATE,
+-            allowNull: true,
+-            field: 'ppe_signature_date',
+-        },
+-    },
+-    {
+-        sequelize,
+-        tableName: 'delivery_drivers',
+-        timestamps: false,
+-        hooks: {
+-            // Encrypt before inserting or updating
+-            beforeSave: (driver: DeliveryDriver) => {
+-                if (driver.changed('encryptedFirstName')) {
+-                    driver.encryptedFirstName = encryptAES(driver.encryptedFirstName);
+-                }
+-                if (driver.changed('encryptedLastName')) {
+-                    driver.encryptedLastName = encryptAES(driver.encryptedLastName);
+-                }
++export const defineDeliveryDriverModel = (sequelize: Sequelize): DeliveryDriverModel => {
++    const existingModel = sequelize.models.DeliveryDriver as DeliveryDriverModel | undefined;
++    if (existingModel) {
++        return existingModel;
++    }
++
++    class DeliveryDriver extends Model<DeliveryDriverAttributes, DeliveryDriverCreationAttributes> implements DeliveryDriverAttributes {
++        declare driverId: number;
++        declare encryptedLastName: string;
++        declare encryptedFirstName: string;
++        declare company: string;
++        declare ppeCharterValid: boolean;
++        declare ppeSignatureDate: Date | null;
++    }
++
++    DeliveryDriver.init(
++        {
++            driverId: {
++                type: DataTypes.INTEGER.UNSIGNED,
++                autoIncrement: true,
++                primaryKey: true,
++                field: 'driver_id',
+             },
+-            // Decrypt automatically when querying the database
+-            afterFind: (result: DeliveryDriver | DeliveryDriver[] | null) => {
+-                if (!result) return;
++            encryptedLastName: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                field: 'encrypted_last_name',
++            },
++            encryptedFirstName: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                field: 'encrypted_first_name',
++            },
++            company: {
++                type: DataTypes.STRING,
++                allowNull: false,
++            },
++            ppeCharterValid: {
++                type: DataTypes.BOOLEAN,
++                defaultValue: false,
++                field: 'ppe_charter_valid',
++            },
++            ppeSignatureDate: {
++                type: DataTypes.DATE,
++                allowNull: true,
++                field: 'ppe_signature_date',
++            },
++        },
++        {
++            sequelize,
++            modelName: 'DeliveryDriver',
++            tableName: 'delivery_drivers',
++            timestamps: false,
++            hooks: {
++                beforeSave: (driver: DeliveryDriverInstance) => {
++                    if (driver.changed('encryptedFirstName')) {
++                        driver.encryptedFirstName = encryptAES(driver.encryptedFirstName);
++                    }
++                    if (driver.changed('encryptedLastName')) {
++                        driver.encryptedLastName = encryptAES(driver.encryptedLastName);
++                    }
++                },
++                afterFind: (result: DeliveryDriverInstance | DeliveryDriverInstance[] | null) => {
++                    if (!result) {
++                        return;
++                    }
++
++                    if (Array.isArray(result)) {
++                        result.forEach((driver) => {
++                            driver.encryptedFirstName = decryptAES(driver.encryptedFirstName);
++                            driver.encryptedLastName = decryptAES(driver.encryptedLastName);
++                        });
++                        return;
++                    }
+ 
+-                if (Array.isArray(result)) {
+-                    result.forEach(driver => {
+-                        driver.encryptedFirstName = decryptAES(driver.encryptedFirstName);
+-                        driver.encryptedLastName = decryptAES(driver.encryptedLastName);
+-                    });
+-                } else {
+                     result.encryptedFirstName = decryptAES(result.encryptedFirstName);
+                     result.encryptedLastName = decryptAES(result.encryptedLastName);
+-                }
++                },
+             },
+-        },
+-    }
+-);
++        }
++    );
++
++    return DeliveryDriver as DeliveryDriverModel;
++};
++
++const DeliveryDriver = defineDeliveryDriverModel(defaultSequelize);
+ 
+ export default DeliveryDriver;
+\ No newline at end of file
+diff --git a/src/models/Employee.ts b/src/models/Employee.ts
+index 234572c..49f0170 100644
+--- a/src/models/Employee.ts
++++ b/src/models/Employee.ts
+@@ -1,6 +1,6 @@
+-import { DataTypes, Model, Optional } from 'sequelize';
+-import sequelize from '../config/db';
+-import {hashSHA256} from "@/utils/crypto";
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
++import { hashSHA256 } from '../utils/crypto';
+ 
+ interface EmployeeAttributes {
+     employeeId: number;
+@@ -11,53 +11,68 @@ interface EmployeeAttributes {
+ 
+ interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'employeeId'> {}
+ 
+-class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
+-    public employeeId!: number;
+-    public username!: string;
+-    public passwordHash!: string;
+-    public role!: 'Admin' | 'WarehouseWorker';
+-}
++export type EmployeeInstance = Model<EmployeeAttributes, EmployeeCreationAttributes> & EmployeeAttributes;
++export type EmployeeModel = ModelStatic<EmployeeInstance>;
+ 
+-Employee.init(
+-    {
+-        employeeId: {
+-            type: DataTypes.INTEGER.UNSIGNED,
+-            autoIncrement: true,
+-            primaryKey: true,
+-            field: 'employee_id',
+-        },
+-        username: {
+-            type: DataTypes.STRING,
+-            allowNull: false,
+-            unique: true,
+-        },
+-        passwordHash: {
+-            type: DataTypes.STRING, // NOTE: Needs SHA-256 hashing before insert
+-            allowNull: false,
+-            field: 'password_hash',
+-        },
+-        role: {
+-            type: DataTypes.ENUM('Admin', 'WarehouseWorker'), // Translated from Admin/Magasinier
+-            allowNull: false,
+-        },
+-    },
+-    {
+-        sequelize,
+-        tableName: 'employees',
+-        timestamps: false,
+-        hooks: {
+-            beforeCreate: (employee: Employee) => {
+-                if (employee.passwordHash) {
+-                    employee.passwordHash = hashSHA256(employee.passwordHash);
+-                }
++export const defineEmployeeModel = (sequelize: Sequelize): EmployeeModel => {
++    const existingModel = sequelize.models.Employee as EmployeeModel | undefined;
++    if (existingModel) {
++        return existingModel;
++    }
++
++    class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
++        declare employeeId: number;
++        declare username: string;
++        declare passwordHash: string;
++        declare role: 'Admin' | 'WarehouseWorker';
++    }
++
++    Employee.init(
++        {
++            employeeId: {
++                type: DataTypes.INTEGER.UNSIGNED,
++                autoIncrement: true,
++                primaryKey: true,
++                field: 'employee_id',
++            },
++            username: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                unique: true,
+             },
+-            beforeUpdate: (employee: Employee) => {
+-                if (employee.changed('passwordHash')) {
+-                    employee.passwordHash = hashSHA256(employee.passwordHash);
+-                }
++            passwordHash: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                field: 'password_hash',
++            },
++            role: {
++                type: DataTypes.ENUM('Admin', 'WarehouseWorker'),
++                allowNull: false,
+             },
+         },
+-    }
+-);
++        {
++            sequelize,
++            modelName: 'Employee',
++            tableName: 'employees',
++            timestamps: false,
++            hooks: {
++                beforeCreate: (employee: EmployeeInstance) => {
++                    if (employee.passwordHash) {
++                        employee.passwordHash = hashSHA256(employee.passwordHash);
++                    }
++                },
++                beforeUpdate: (employee: EmployeeInstance) => {
++                    if (employee.changed('passwordHash')) {
++                        employee.passwordHash = hashSHA256(employee.passwordHash);
++                    }
++                },
++            },
++        }
++    );
++
++    return Employee as EmployeeModel;
++};
++
++const Employee = defineEmployeeModel(defaultSequelize);
+ 
+ export default Employee;
+\ No newline at end of file
+diff --git a/src/models/HistoryLog.ts b/src/models/HistoryLog.ts
+index b40a775..01b5da3 100644
+--- a/src/models/HistoryLog.ts
++++ b/src/models/HistoryLog.ts
+@@ -1,5 +1,5 @@
+-import { DataTypes, Model, Optional } from 'sequelize';
+-import sequelize from '../config/db';
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
+ 
+ interface HistoryLogAttributes {
+     logId: number;
+@@ -16,43 +16,58 @@ interface HistoryLogAttributes {
+ 
+ interface HistoryLogCreationAttributes extends Optional<HistoryLogAttributes, 'logId'> {}
+ 
+-class HistoryLog extends Model<HistoryLogAttributes, HistoryLogCreationAttributes> implements HistoryLogAttributes {
+-    public logId!: number;
+-    public dateTime!: Date;
+-    public actionType!: 'Entry' | 'Exit' | 'Refusal';
+-    public details!: string;
+-}
++export type HistoryLogInstance = Model<HistoryLogAttributes, HistoryLogCreationAttributes> & HistoryLogAttributes;
++export type HistoryLogModel = ModelStatic<HistoryLogInstance>;
+ 
+-HistoryLog.init(
+-    {
+-        logId: {
+-            type: DataTypes.INTEGER.UNSIGNED,
+-            autoIncrement: true,
+-            primaryKey: true,
+-            field: 'log_id',
+-        },
+-        dateTime: {
+-            type: DataTypes.DATE,
+-            allowNull: false,
+-            defaultValue: DataTypes.NOW,
+-            field: 'date_time',
+-        },
+-        actionType: {
+-            type: DataTypes.ENUM('Entry', 'Exit', 'Refusal'),
+-            allowNull: false,
+-            field: 'action_type',
+-        },
+-        details: {
+-            type: DataTypes.TEXT,
+-            allowNull: true,
+-        },
+-    },
+-    {
+-        sequelize,
+-        tableName: 'history_logs',
+-        timestamps: false,
+-        // Constraint FC2: Table partitioning by year should be handled via a raw SQL migration.
++export const defineHistoryLogModel = (sequelize: Sequelize): HistoryLogModel => {
++    const existingModel = sequelize.models.HistoryLog as HistoryLogModel | undefined;
++    if (existingModel) {
++        return existingModel;
+     }
+-);
++
++    class HistoryLog extends Model<HistoryLogAttributes, HistoryLogCreationAttributes> implements HistoryLogAttributes {
++        declare logId: number;
++        declare dateTime: Date;
++        declare actionType: 'Entry' | 'Exit' | 'Refusal';
++        declare details: string;
++    }
++
++    HistoryLog.init(
++        {
++            logId: {
++                type: DataTypes.INTEGER.UNSIGNED,
++                autoIncrement: true,
++                primaryKey: true,
++                field: 'log_id',
++            },
++            dateTime: {
++                type: DataTypes.DATE,
++                allowNull: false,
++                defaultValue: DataTypes.NOW,
++                field: 'date_time',
++            },
++            actionType: {
++                type: DataTypes.ENUM('Entry', 'Exit', 'Refusal'),
++                allowNull: false,
++                field: 'action_type',
++            },
++            details: {
++                type: DataTypes.TEXT,
++                allowNull: true,
++            },
++        },
++        {
++            sequelize,
++            modelName: 'HistoryLog',
++            tableName: 'history_logs',
++            timestamps: false,
++            // Constraint FC2: Table partitioning by year should be handled via a raw SQL migration.
++        }
++    );
++
++    return HistoryLog as HistoryLogModel;
++};
++
++const HistoryLog = defineHistoryLogModel(defaultSequelize);
+ 
+ export default HistoryLog;
+\ No newline at end of file
+diff --git a/src/models/Vehicle.ts b/src/models/Vehicle.ts
+index da27627..432a116 100644
+--- a/src/models/Vehicle.ts
++++ b/src/models/Vehicle.ts
+@@ -1,5 +1,5 @@
+-import { DataTypes, Model, Optional } from 'sequelize';
+-import sequelize from '../config/db';
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
+ 
+ interface VehicleAttributes {
+     vehicleId: number;
+@@ -10,38 +10,53 @@ interface VehicleAttributes {
+ 
+ interface VehicleCreationAttributes extends Optional<VehicleAttributes, 'vehicleId'> {}
+ 
+-class Vehicle extends Model<VehicleAttributes, VehicleCreationAttributes> implements VehicleAttributes {
+-    public vehicleId!: number;
+-    public licensePlate!: string;
+-    public vehicleType!: 'HGV' | 'LCV';
+-    public driverId!: number;
+-}
++export type VehicleInstance = Model<VehicleAttributes, VehicleCreationAttributes> & VehicleAttributes;
++export type VehicleModel = ModelStatic<VehicleInstance>;
+ 
+-Vehicle.init(
+-    {
+-        vehicleId: {
+-            type: DataTypes.INTEGER.UNSIGNED,
+-            autoIncrement: true,
+-            primaryKey: true,
+-            field: 'vehicle_id',
+-        },
+-        licensePlate: {
+-            type: DataTypes.STRING,
+-            allowNull: false,
+-            unique: true,
+-            field: 'license_plate',
+-        },
+-        vehicleType: {
+-            type: DataTypes.ENUM('HGV', 'LCV'),
+-            allowNull: false,
+-            field: 'vehicle_type',
+-        },
+-    },
+-    {
+-        sequelize,
+-        tableName: 'vehicles',
+-        timestamps: false,
++export const defineVehicleModel = (sequelize: Sequelize): VehicleModel => {
++    const existingModel = sequelize.models.Vehicle as VehicleModel | undefined;
++    if (existingModel) {
++        return existingModel;
++    }
++
++    class Vehicle extends Model<VehicleAttributes, VehicleCreationAttributes> implements VehicleAttributes {
++        declare vehicleId: number;
++        declare licensePlate: string;
++        declare vehicleType: 'HGV' | 'LCV';
++        declare driverId: number;
+     }
+-);
++
++    Vehicle.init(
++        {
++            vehicleId: {
++                type: DataTypes.INTEGER.UNSIGNED,
++                autoIncrement: true,
++                primaryKey: true,
++                field: 'vehicle_id',
++            },
++            licensePlate: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                unique: true,
++                field: 'license_plate',
++            },
++            vehicleType: {
++                type: DataTypes.ENUM('HGV', 'LCV'),
++                allowNull: false,
++                field: 'vehicle_type',
++            },
++        },
++        {
++            sequelize,
++            modelName: 'Vehicle',
++            tableName: 'vehicles',
++            timestamps: false,
++        }
++    );
++
++    return Vehicle as VehicleModel;
++};
++
++const Vehicle = defineVehicleModel(defaultSequelize);
+ 
+ export default Vehicle;
+\ No newline at end of file
+diff --git a/src/models/Visitor.ts b/src/models/Visitor.ts
+index d446183..402f0f9 100644
+--- a/src/models/Visitor.ts
++++ b/src/models/Visitor.ts
+@@ -1,5 +1,5 @@
+-import { DataTypes, Model, Optional } from 'sequelize';
+-import sequelize from '../config/db';
++import { DataTypes, Model, ModelStatic, Optional, Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
+ 
+ interface VisitorAttributes {
+     visitorId: number;
+@@ -10,41 +10,56 @@ interface VisitorAttributes {
+ 
+ interface VisitorCreationAttributes extends Optional<VisitorAttributes, 'visitorId'> {}
+ 
+-class Visitor extends Model<VisitorAttributes, VisitorCreationAttributes> implements VisitorAttributes {
+-    public visitorId!: number;
+-    public fullName!: string;
+-    public company!: string;
+-    public arrivalTime!: Date;
+-}
++export type VisitorInstance = Model<VisitorAttributes, VisitorCreationAttributes> & VisitorAttributes;
++export type VisitorModel = ModelStatic<VisitorInstance>;
+ 
+-Visitor.init(
+-    {
+-        visitorId: {
+-            type: DataTypes.INTEGER.UNSIGNED,
+-            autoIncrement: true,
+-            primaryKey: true,
+-            field: 'visitor_id',
+-        },
+-        fullName: {
+-            type: DataTypes.STRING,
+-            allowNull: false,
+-            field: 'full_name',
+-        },
+-        company: {
+-            type: DataTypes.STRING,
+-            allowNull: false,
+-        },
+-        arrivalTime: {
+-            type: DataTypes.DATE,
+-            allowNull: false,
+-            field: 'arrival_time',
+-        },
+-    },
+-    {
+-        sequelize,
+-        tableName: 'visitors',
+-        timestamps: false,
++export const defineVisitorModel = (sequelize: Sequelize): VisitorModel => {
++    const existingModel = sequelize.models.Visitor as VisitorModel | undefined;
++    if (existingModel) {
++        return existingModel;
+     }
+-);
++
++    class Visitor extends Model<VisitorAttributes, VisitorCreationAttributes> implements VisitorAttributes {
++        declare visitorId: number;
++        declare fullName: string;
++        declare company: string;
++        declare arrivalTime: Date;
++    }
++
++    Visitor.init(
++        {
++            visitorId: {
++                type: DataTypes.INTEGER.UNSIGNED,
++                autoIncrement: true,
++                primaryKey: true,
++                field: 'visitor_id',
++            },
++            fullName: {
++                type: DataTypes.STRING,
++                allowNull: false,
++                field: 'full_name',
++            },
++            company: {
++                type: DataTypes.STRING,
++                allowNull: false,
++            },
++            arrivalTime: {
++                type: DataTypes.DATE,
++                allowNull: false,
++                field: 'arrival_time',
++            },
++        },
++        {
++            sequelize,
++            modelName: 'Visitor',
++            tableName: 'visitors',
++            timestamps: false,
++        }
++    );
++
++    return Visitor as VisitorModel;
++};
++
++const Visitor = defineVisitorModel(defaultSequelize);
+ 
+ export default Visitor;
+\ No newline at end of file
+diff --git a/src/models/index.ts b/src/models/index.ts
+index f398d39..e995434 100644
+--- a/src/models/index.ts
++++ b/src/models/index.ts
+@@ -1,33 +1,65 @@
+-import Employee from './Employee';
+-import DeliveryDriver from './DeliveryDriver';
+-import Vehicle from './Vehicle';
+-import Visitor from './Visitor';
+-import HistoryLog from './HistoryLog';
++import { Sequelize } from 'sequelize';
++import defaultSequelize from '../config/db';
++import { defineDeliveryDriverModel, DeliveryDriverModel } from './DeliveryDriver';
++import { defineEmployeeModel, EmployeeModel } from './Employee';
++import { defineHistoryLogModel, HistoryLogModel } from './HistoryLog';
++import { defineVehicleModel, VehicleModel } from './Vehicle';
++import { defineVisitorModel, VisitorModel } from './Visitor';
+ 
+-// --- DeliveryDriver <-> Vehicle (1 to Many) ---
+-DeliveryDriver.hasMany(Vehicle, { foreignKey: 'driverId' });
+-Vehicle.belongsTo(DeliveryDriver, { foreignKey: 'driverId' });
++export interface EnstoModels {
++    Employee: EmployeeModel;
++    DeliveryDriver: DeliveryDriverModel;
++    Vehicle: VehicleModel;
++    Visitor: VisitorModel;
++    HistoryLog: HistoryLogModel;
++}
+ 
+-// --- Employee <-> HistoryLog (1 to Many) ---
+-Employee.hasMany(HistoryLog, { foreignKey: 'employeeId' });
+-HistoryLog.belongsTo(Employee, { foreignKey: 'employeeId' });
++const associatedSequelizeInstances = new WeakSet<Sequelize>();
+ 
+-// --- Vehicle <-> HistoryLog (1 to Many) ---
+-Vehicle.hasMany(HistoryLog, { foreignKey: 'vehicleId' });
+-HistoryLog.belongsTo(Vehicle, { foreignKey: 'vehicleId' });
++const applyAssociations = ({ Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog }: EnstoModels): void => {
++    DeliveryDriver.hasMany(Vehicle, { foreignKey: 'driverId' });
++    Vehicle.belongsTo(DeliveryDriver, { foreignKey: 'driverId' });
+ 
+-// --- DeliveryDriver <-> HistoryLog (1 to Many) ---
+-DeliveryDriver.hasMany(HistoryLog, { foreignKey: 'driverId' });
+-HistoryLog.belongsTo(DeliveryDriver, { foreignKey: 'driverId' });
++    Employee.hasMany(HistoryLog, { foreignKey: 'employeeId' });
++    HistoryLog.belongsTo(Employee, { foreignKey: 'employeeId' });
+ 
+-// --- Visitor <-> HistoryLog (1 to Many) ---
+-Visitor.hasMany(HistoryLog, { foreignKey: 'visitorId' });
+-HistoryLog.belongsTo(Visitor, { foreignKey: 'visitorId' });
++    Vehicle.hasMany(HistoryLog, { foreignKey: 'vehicleId' });
++    HistoryLog.belongsTo(Vehicle, { foreignKey: 'vehicleId' });
++
++    DeliveryDriver.hasMany(HistoryLog, { foreignKey: 'driverId' });
++    HistoryLog.belongsTo(DeliveryDriver, { foreignKey: 'driverId' });
++
++    Visitor.hasMany(HistoryLog, { foreignKey: 'visitorId' });
++    HistoryLog.belongsTo(Visitor, { foreignKey: 'visitorId' });
++};
++
++export const initModels = (sequelize: Sequelize = defaultSequelize): EnstoModels => {
++    const models: EnstoModels = {
++        Employee: defineEmployeeModel(sequelize),
++        DeliveryDriver: defineDeliveryDriverModel(sequelize),
++        Vehicle: defineVehicleModel(sequelize),
++        Visitor: defineVisitorModel(sequelize),
++        HistoryLog: defineHistoryLogModel(sequelize),
++    };
++
++    if (!associatedSequelizeInstances.has(sequelize)) {
++        applyAssociations(models);
++        associatedSequelizeInstances.add(sequelize);
++    }
++
++    return models;
++};
++
++const defaultModels = initModels(defaultSequelize);
++
++export const { Employee, DeliveryDriver, Vehicle, Visitor, HistoryLog } = defaultModels;
+ 
+ export {
+-    Employee,
+-    DeliveryDriver,
+-    Vehicle,
+-    Visitor,
+-    HistoryLog,
+-};
+\ No newline at end of file
++    defineEmployeeModel,
++    defineDeliveryDriverModel,
++    defineVehicleModel,
++    defineVisitorModel,
++    defineHistoryLogModel,
++};
++
++export default defaultModels;
+diff --git a/test/ensto-database.test.js b/test/ensto-database.test.js
+new file mode 100644
+index 0000000..6055594
+--- /dev/null
++++ b/test/ensto-database.test.js
+@@ -0,0 +1,196 @@
++const assert = require('node:assert/strict');
++const { DataTypes, Model } = require('sequelize');
++const { EnstoDatabase } = require('../dist');
++
++async function run() {
++  let closeCalls = 0;
++
++  const db = new EnstoDatabase({
++    connection: {
++      database: 'ensto',
++      username: 'root',
++      password: 'secret',
++      host: '127.0.0.1',
++      port: 3306,
++      logging: false,
++    },
++  });
++
++  try {
++    const builtInModels = Object.keys(db.models).sort();
++    const expectedModels = [
++      'DeliveryDriver',
++      'Employee',
++      'HistoryLog',
++      'Vehicle',
++      'Visitor',
++    ];
++
++    assert.deepEqual(builtInModels, expectedModels, 'built-in models should be initialized');
++    assert.ok(db.getModel('Employee'), 'Employee model should be retrievable');
++    assert.ok(db.getModel('DeliveryDriver'), 'DeliveryDriver model should be retrievable');
++
++    let authenticateCalls = 0;
++    let syncCalls = 0;
++    let syncOptions;
++    db.sequelize.authenticate = async () => {
++      authenticateCalls += 1;
++    };
++
++    db.sequelize.sync = async (options) => {
++      syncCalls += 1;
++      syncOptions = options;
++      return db.sequelize;
++    };
++
++    db.sequelize.close = async () => {
++      closeCalls += 1;
++    };
++
++    const authenticateResult = await db.authenticate();
++    assert.strictEqual(authenticateResult, db, 'authenticate should resolve with the EnstoDatabase instance');
++    assert.strictEqual(authenticateCalls, 1, 'authenticate should delegate to sequelize.authenticate');
++
++    const syncResult = await db.sync({ force: true });
++    assert.strictEqual(syncResult, db, 'sync should resolve with the EnstoDatabase instance');
++    assert.strictEqual(syncCalls, 1, 'sync should delegate to sequelize.sync');
++    assert.deepEqual(syncOptions, { force: true }, 'sync should pass options through');
++
++    const Contractor = db.createModel(
++      'Contractor',
++      {
++        contractorId: {
++          type: DataTypes.INTEGER.UNSIGNED,
++          autoIncrement: true,
++          primaryKey: true,
++        },
++        companyName: {
++          type: DataTypes.STRING,
++          allowNull: false,
++        },
++      },
++      {
++        tableName: 'contractors',
++        timestamps: false,
++      }
++    );
++
++    const ContractorAgain = db.createModel(
++      'Contractor',
++      {
++        contractorId: {
++          type: DataTypes.INTEGER.UNSIGNED,
++          autoIncrement: true,
++          primaryKey: true,
++        },
++      },
++      {
++        tableName: 'contractors',
++        timestamps: false,
++      }
++    );
++
++    assert.strictEqual(Contractor, ContractorAgain, 'createModel should be idempotent per model name');
++    assert.strictEqual(db.getModel('Contractor'), Contractor, 'dynamic model should be registered');
++
++    let badgeFactoryCalls = 0;
++
++    const Badge = db.registerModel('Badge', (sequelize) => {
++      badgeFactoryCalls += 1;
++
++      class Badge extends Model {}
++
++      Badge.init(
++        {
++          badgeId: {
++            type: DataTypes.INTEGER.UNSIGNED,
++            autoIncrement: true,
++            primaryKey: true,
++          },
++          label: {
++            type: DataTypes.STRING,
++            allowNull: false,
++          },
++        },
++        {
++          sequelize,
++          modelName: 'Badge',
++          tableName: 'badges',
++          timestamps: false,
++        }
++      );
++
++      return Badge;
++    });
++
++    const BadgeAgain = db.registerModel('Badge', () => {
++      throw new Error('registerModel should not invoke the factory twice for the same name');
++    });
++
++    assert.strictEqual(Badge, BadgeAgain, 'registerModel should return the existing model when called twice');
++    assert.strictEqual(badgeFactoryCalls, 1, 'registerModel should only invoke the factory once');
++
++    const BadgeEvent = db.createModel(
++      'BadgeEvent',
++      {
++        badgeEventId: {
++          type: DataTypes.INTEGER.UNSIGNED,
++          autoIncrement: true,
++          primaryKey: true,
++        },
++        employeeId: {
++          type: DataTypes.INTEGER.UNSIGNED,
++          allowNull: false,
++        },
++        direction: {
++          type: DataTypes.ENUM('IN', 'OUT'),
++          allowNull: false,
++        },
++      },
++      {
++        tableName: 'badge_events',
++        timestamps: false,
++        associate: (model, models) => {
++          model.belongsTo(models.Employee, { foreignKey: 'employeeId', as: 'employee' });
++          models.Employee.hasMany(model, { foreignKey: 'employeeId', as: 'badgeEvents' });
++        },
++      }
++    );
++
++    assert.ok(BadgeEvent.associations.employee, 'dynamic association should be attached to the dynamic model');
++    assert.ok(db.models.Employee.associations.badgeEvents, 'dynamic association should be attached to built-in model');
++
++    const employee = db.models.Employee.build({
++      username: 'admin',
++      passwordHash: 'plain-password',
++      role: 'Admin',
++    });
++
++    const beforeCreateHooks = db.models.Employee.options.hooks.beforeCreate;
++    const hooks = Array.isArray(beforeCreateHooks) ? beforeCreateHooks : [beforeCreateHooks];
++
++    for (const hook of hooks) {
++      await hook(employee);
++    }
++
++    assert.notStrictEqual(employee.passwordHash, 'plain-password', 'password should be transformed by the beforeCreate hook');
++    assert.strictEqual(employee.passwordHash.length, 64, 'SHA-256 hash should be 64 hex chars');
++
++    const contractor = Contractor.build({
++      companyName: 'Acme Logistics',
++    });
++    assert.strictEqual(contractor.get('companyName'), 'Acme Logistics', 'dynamic model instances should be buildable');
++
++    console.log('EnstoDatabase integration test passed.');
++  } finally {
++    await db.close();
++    assert.strictEqual(closeCalls, 1, 'close should delegate to sequelize.close exactly once');
++  }
++}
++
++run().catch((error) => {
++  console.error('EnstoDatabase integration test failed.');
++  console.error(error);
++  process.exitCode = 1;
++});
++
+
+commit ada31ca0da482f36c1d5ededa644cce8fe8c6b07
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Thu Mar 12 17:11:41 2026 +0100
+
+    feat: add mock data for employees, delivery drivers, vehicles, visitors, and history logs
+---
+ .idea/sqldialects.xml |  6 +++++
+ mock_data.sql         | 75 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 81 insertions(+)
+
+diff --git a/.idea/sqldialects.xml b/.idea/sqldialects.xml
+new file mode 100644
+index 0000000..58e6942
+--- /dev/null
++++ b/.idea/sqldialects.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="SqlDialectMappings">
++    <file url="file://$PROJECT_DIR$/mock_data.sql" dialect="GenericSQL" />
++  </component>
++</project>
+\ No newline at end of file
+diff --git a/mock_data.sql b/mock_data.sql
+new file mode 100644
+index 0000000..d69acc3
+--- /dev/null
++++ b/mock_data.sql
+@@ -0,0 +1,75 @@
++-- Disable foreign key checks to prevent dependency errors during bulk operations
++SET
++FOREIGN_KEY_CHECKS = 0;
++
++-- --------------------------------------------------------
++-- 1. Mock Data for Employees (Personnel)
++-- --------------------------------------------------------
++DELETE
++FROM `employees`;
++ALTER TABLE `employees` AUTO_INCREMENT = 1;
++
++INSERT INTO `employees` (`employee_id`, `username`, `password_hash`, `role`)
++VALUES (1, 'jdupont_admin', SHA2('Admin123!', 256), 'Admin'),
++       (2, 'mlefevre_wh', SHA2('Worker123!', 256), 'WarehouseWorker'),
++       (3, 'aleroi_wh', SHA2('Worker123!', 256), 'WarehouseWorker');
++
++-- --------------------------------------------------------
++-- 2. Mock Data for Delivery Drivers (Livreurs)
++-- --------------------------------------------------------
++DELETE
++FROM `delivery_drivers`;
++ALTER TABLE `delivery_drivers` AUTO_INCREMENT = 1;
++
++INSERT INTO `delivery_drivers` (`driver_id`, `encrypted_last_name`, `encrypted_first_name`, `company`,
++                                `ppe_charter_valid`, `ppe_signature_date`)
++VALUES (1, 'e3b0c44298fc1c149afbf4c8996fb924:e3b0c44298fc1c14', 'e3b0c44298fc1c149afbf4c8996fb924:8a2f3b',
++        'Fast Logistics', 1, '2023-10-01 08:30:00'),
++       (2, 'a1b2c3d4e5f678901234567890abcdef:c4d5e6f7a8b9', 'a1b2c3d4e5f678901234567890abcdef:1a2b3c', 'Global Freight',
++        1, '2023-11-15 09:00:00'),
++       (3, 'f1e2d3c4b5a69876543210fedcba0987:9f8e7d', 'f1e2d3c4b5a69876543210fedcba0987:6c5b4a', 'Local Transports', 0,
++        NULL);
++
++-- --------------------------------------------------------
++-- 3. Mock Data for Vehicles (Véhicules)
++-- --------------------------------------------------------
++DELETE
++FROM `vehicles`;
++ALTER TABLE `vehicles` AUTO_INCREMENT = 1;
++
++INSERT INTO `vehicles` (`vehicle_id`, `license_plate`, `vehicle_type`, `driverId`)
++VALUES (1, 'AA-123-BB', 'LCV', 1),
++       (2, 'CD-456-EF', 'HGV', 2),
++       (3, 'GH-789-IJ', 'LCV', 3),
++       (4, 'KL-012-MN', 'HGV', 1);
++
++-- --------------------------------------------------------
++-- 4. Mock Data for Visitors (Visiteurs)
++-- --------------------------------------------------------
++DELETE
++FROM `visitors`;
++ALTER TABLE `visitors` AUTO_INCREMENT = 1;
++
++INSERT INTO `visitors` (`visitor_id`, `full_name`, `company`, `arrival_time`)
++VALUES (1, 'Sophie Martin', 'Tech Solutions', '2023-12-01 10:15:00'),
++       (2, 'Lucas Bernard', 'Maintenance Corp', '2023-12-01 14:00:00'),
++       (3, 'Emma Petit', 'Audit Partners', '2023-12-02 09:00:00');
++
++-- --------------------------------------------------------
++-- 5. Mock Data for History Logs (Historique_Log)
++-- --------------------------------------------------------
++DELETE
++FROM `history_logs`;
++ALTER TABLE `history_logs` AUTO_INCREMENT = 1;
++
++INSERT INTO `history_logs` (`log_id`, `date_time`, `action_type`, `details`, `employeeId`, `vehicleId`, `driverId`,
++                            `visitorId`)
++VALUES (1, '2023-12-01 08:00:00', 'Entry', 'Routine delivery scan', 2, 1, 1, NULL),
++       (2, '2023-12-01 08:45:00', 'Exit', 'Delivery completed', 2, 1, 1, NULL),
++       (3, '2023-12-01 10:15:00', 'Entry', 'Meeting with management', 1, NULL, NULL, 1),
++       (4, '2023-12-01 11:00:00', 'Refusal', 'PPE charter not signed by driver', 3, 3, 3, NULL),
++       (5, '2023-12-01 12:30:00', 'Exit', 'Meeting finished', 1, NULL, NULL, 1);
++
++-- Re-enable foreign key checks
++SET
++FOREIGN_KEY_CHECKS = 1;
+\ No newline at end of file
+
+commit 767d893eb5eafd4f4eeec44e56e9ba47ca6d5cdc
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Thu Mar 12 17:11:20 2026 +0100
+
+    fix: correct package name in README.md
+---
+ README.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index fc68110..c5c57f6 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,4 @@
+-# @lesdesesperes/ensto-db
++# @les-desesperes/ensto-db
+ 
+ Database module for Ensto built with Sequelize + MySQL.
+ 
+@@ -10,7 +10,7 @@ It provides:
+ ## Installation
+ 
+ ```bash
+-pnpm add @lesdesesperes/ensto-db
++pnpm add @les-desesperes/ensto-db
+ ```
+ 
+ ## Exports
+
+commit 050dae7fc95edd9d5eefdff7d78b31f3498f38e7
+Author: fullgreen.gn <j.luc@polarisdev.fr>
+Date:   Thu Mar 12 17:03:39 2026 +0100
+
+    first commit
+---
+ .gitignore                                 |   3 +
+ .idea/.gitignore                           |  10 +
+ .idea/copilot.data.migration.ask2agent.xml |   6 +
+ .idea/discord.xml                          |  14 ++
+ .idea/ensto_db_module.iml                  |   8 +
+ .idea/material_theme_project_new.xml       |  12 +
+ .idea/modules.xml                          |   8 +
+ .idea/vcs.xml                              |   6 +
+ README.md                                  | 143 +++++++++++
+ package.json                               |  23 ++
+ pnpm-lock.yaml                             | 372 +++++++++++++++++++++++++++++
+ src/config/db.ts                           |  24 ++
+ src/index.ts                               |   3 +
+ src/models/DeliveryDriver.ts               |  90 +++++++
+ src/models/Employee.ts                     |  63 +++++
+ src/models/HistoryLog.ts                   |  58 +++++
+ src/models/Vehicle.ts                      |  47 ++++
+ src/models/Visitor.ts                      |  50 ++++
+ src/models/index.ts                        |  33 +++
+ src/utils/crypto.ts                        |  36 +++
+ tsconfig.json                              |  20 ++
+ 21 files changed, 1029 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..f94630c
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,3 @@
++node_modules/
++dist/
++.env
+\ No newline at end of file
+diff --git a/.idea/.gitignore b/.idea/.gitignore
+new file mode 100644
+index 0000000..ab1f416
+--- /dev/null
++++ b/.idea/.gitignore
+@@ -0,0 +1,10 @@
++# Default ignored files
++/shelf/
++/workspace.xml
++# Ignored default folder with query files
++/queries/
++# Datasource local storage ignored files
++/dataSources/
++/dataSources.local.xml
++# Editor-based HTTP Client requests
++/httpRequests/
+diff --git a/.idea/copilot.data.migration.ask2agent.xml b/.idea/copilot.data.migration.ask2agent.xml
+new file mode 100644
+index 0000000..1f2ea11
+--- /dev/null
++++ b/.idea/copilot.data.migration.ask2agent.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="Ask2AgentMigrationStateService">
++    <option name="migrationStatus" value="COMPLETED" />
++  </component>
++</project>
+\ No newline at end of file
+diff --git a/.idea/discord.xml b/.idea/discord.xml
+new file mode 100644
+index 0000000..912db82
+--- /dev/null
++++ b/.idea/discord.xml
+@@ -0,0 +1,14 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="DiscordProjectSettings">
++    <option name="show" value="PROJECT_FILES" />
++    <option name="description" value="" />
++    <option name="applicationTheme" value="default" />
++    <option name="iconsTheme" value="default" />
++    <option name="button1Title" value="" />
++    <option name="button1Url" value="" />
++    <option name="button2Title" value="" />
++    <option name="button2Url" value="" />
++    <option name="customApplicationId" value="" />
++  </component>
++</project>
+\ No newline at end of file
+diff --git a/.idea/ensto_db_module.iml b/.idea/ensto_db_module.iml
+new file mode 100644
+index 0000000..c956989
+--- /dev/null
++++ b/.idea/ensto_db_module.iml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<module type="WEB_MODULE" version="4">
++  <component name="NewModuleRootManager">
++    <content url="file://$MODULE_DIR$" />
++    <orderEntry type="inheritedJdk" />
++    <orderEntry type="sourceFolder" forTests="false" />
++  </component>
++</module>
+\ No newline at end of file
+diff --git a/.idea/material_theme_project_new.xml b/.idea/material_theme_project_new.xml
+new file mode 100644
+index 0000000..bc0c5a2
+--- /dev/null
++++ b/.idea/material_theme_project_new.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="MaterialThemeProjectNewConfig">
++    <option name="metadata">
++      <MTProjectMetadataState>
++        <option name="migrated" value="true" />
++        <option name="pristineConfig" value="false" />
++        <option name="userId" value="1a3a4ba7:19c764e74c7:-7fe1" />
++      </MTProjectMetadataState>
++    </option>
++  </component>
++</project>
+\ No newline at end of file
+diff --git a/.idea/modules.xml b/.idea/modules.xml
+new file mode 100644
+index 0000000..4a69fdd
+--- /dev/null
++++ b/.idea/modules.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="ProjectModuleManager">
++    <modules>
++      <module fileurl="file://$PROJECT_DIR$/.idea/ensto_db_module.iml" filepath="$PROJECT_DIR$/.idea/ensto_db_module.iml" />
++    </modules>
++  </component>
++</project>
+\ No newline at end of file
+diff --git a/.idea/vcs.xml b/.idea/vcs.xml
+new file mode 100644
+index 0000000..94a25f7
+--- /dev/null
++++ b/.idea/vcs.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project version="4">
++  <component name="VcsDirectoryMappings">
++    <mapping directory="$PROJECT_DIR$" vcs="Git" />
++  </component>
++</project>
+\ No newline at end of file
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..fc68110
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,143 @@
++# @lesdesesperes/ensto-db
++
++Database module for Ensto built with Sequelize + MySQL.
++
++It provides:
++- a preconfigured Sequelize instance
++- domain models (`Employee`, `DeliveryDriver`, `Vehicle`, `Visitor`, `HistoryLog`)
++- crypto helpers for AES-256 encryption/decryption and SHA-256 hashing
++
++## Installation
++
++```bash
++pnpm add @lesdesesperes/ensto-db
++```
++
++## Exports
++
++From `src/index.ts`, the package exports:
++- `sequelize` (default export from `src/config/db.ts`)
++- all models from `src/models`
++- crypto utilities from `src/utils/crypto`
++
++Example:
++
++```ts
++import {
++  sequelize,
++  Employee,
++  DeliveryDriver,
++  Vehicle,
++  Visitor,
++  HistoryLog,
++  encryptAES,
++  decryptAES,
++  hashSHA256,
++} from '@lesdesesperes/ensto-db';
++```
++
++## Configuration
++
++This module reads environment variables through `dotenv`.
++
++Create a `.env` file in your app:
++
++```env
++MYSQL_DATABASE=ensto
++MYSQL_USER=root
++MYSQL_PASSWORD=secret
++MYSQL_HOST=127.0.0.1
++MYSQL_PORT=3306
++ENCRYPTION_KEY=your-32-byte-secret-key-string!!
++```
++
++Required variables:
++- `MYSQL_DATABASE`
++- `MYSQL_USER`
++- `MYSQL_PASSWORD`
++- `MYSQL_HOST`
++- `MYSQL_PORT` (optional, defaults to `3306`)
++- `ENCRYPTION_KEY` (recommended; fallback exists but should not be used in production)
++
++## Quick Start
++
++```ts
++import { sequelize, Employee, DeliveryDriver } from '@lesdesesperes/ensto-db';
++
++async function main() {
++  await sequelize.authenticate();
++
++  const admin = await Employee.create({
++    username: 'admin',
++    passwordHash: 'plain-text-password', // gets hashed by model hook
++    role: 'Admin',
++  });
++
++  const driver = await DeliveryDriver.create({
++    encryptedFirstName: 'John', // gets encrypted by model hook
++    encryptedLastName: 'Doe',   // gets encrypted by model hook
++    company: 'Acme Logistics',
++    ppeCharterValid: true,
++    ppeSignatureDate: new Date(),
++  });
++
++  console.log(admin.employeeId, driver.driverId);
++}
++
++main().catch(console.error);
++```
++
++## Models
++
++- `Employee`
++  - fields: `employeeId`, `username`, `passwordHash`, `role`
++  - behavior: `passwordHash` is SHA-256 hashed in create/update hooks
++- `DeliveryDriver`
++  - fields: `driverId`, `encryptedLastName`, `encryptedFirstName`, `company`, `ppeCharterValid`, `ppeSignatureDate`
++  - behavior: first/last name fields are AES-encrypted before save and decrypted after fetch
++- `Vehicle`
++  - fields: `vehicleId`, `licensePlate`, `vehicleType`, `driverId`
++- `Visitor`
++  - fields: `visitorId`, `fullName`, `company`, `arrivalTime`
++- `HistoryLog`
++  - fields: `logId`, `dateTime`, `actionType`, `details`, plus nullable relation ids
++
++### Associations
++
++Defined in `src/models/index.ts`:
++- `DeliveryDriver` has many `Vehicle`
++- `Employee` has many `HistoryLog`
++- `Vehicle` has many `HistoryLog`
++- `DeliveryDriver` has many `HistoryLog`
++- `Visitor` has many `HistoryLog`
++
++## Crypto Utilities
++
++- `encryptAES(text: string): string`
++- `decryptAES(encryptedText: string): string`
++- `hashSHA256(text: string): string`
++
++## Development
++
++Install dependencies:
++
++```bash
++pnpm install
++```
++
++Build TypeScript:
++
++```bash
++pnpm run build
++```
++
++Package output:
++- JS: `dist/index.js`
++- Types: `dist/index.d.ts`
++
++## Notes
++
++- This package targets CommonJS output (`tsconfig.json` -> `"module": "CommonJS"`).
++- There is currently no test script in `package.json`.
++- `prepublishOnly` runs the build automatically before publishing.
++
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..1144936
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,23 @@
++{
++  "name": "@les-desesperes/ensto-db",
++  "version": "1.0.0",
++  "description": "Database models and connection for Ensto",
++  "main": "dist/index.js",
++  "types": "dist/index.d.ts",
++  "files": [
++    "dist"
++  ],
++  "scripts": {
++    "build": "rimraf dist && tsc",
++    "prepublishOnly": "pnpm run build"
++  },
++  "dependencies": {
++    "mysql2": "^3.9.7",
++    "sequelize": "^6.37.3"
++  },
++  "devDependencies": {
++    "@types/node": "^20.0.0",
++    "rimraf": "^5.0.5",
++    "typescript": "^5.4.5"
++  }
++}
+\ No newline at end of file
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+new file mode 100644
+index 0000000..1b8513d
+--- /dev/null
++++ b/pnpm-lock.yaml
+@@ -0,0 +1,372 @@
++lockfileVersion: '9.0'
++
++settings:
++  autoInstallPeers: true
++  excludeLinksFromLockfile: false
++
++importers:
++
++  .:
++    dependencies:
++      dotenv:
++        specifier: ^17.3.1
++        version: 17.3.1
++      mysql2:
++        specifier: ^3.19.1
++        version: 3.19.1(@types/node@25.5.0)
++      sequelize:
++        specifier: ^6.37.8
++        version: 6.37.8(mysql2@3.19.1(@types/node@25.5.0))
++    devDependencies:
++      '@types/node':
++        specifier: ^25.5.0
++        version: 25.5.0
++      rimraf:
++        specifier: ^6.1.3
++        version: 6.1.3
++      typescript:
++        specifier: ^5.9.3
++        version: 5.9.3
++
++packages:
++
++  '@types/debug@4.1.12':
++    resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
++
++  '@types/ms@2.1.0':
++    resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
++
++  '@types/node@25.5.0':
++    resolution: {integrity: sha512-jp2P3tQMSxWugkCUKLRPVUpGaL5MVFwF8RDuSRztfwgN1wmqJeMSbKlnEtQqU8UrhTmzEmZdu2I6v2dpp7XIxw==}
++
++  '@types/validator@13.15.10':
++    resolution: {integrity: sha512-T8L6i7wCuyoK8A/ZeLYt1+q0ty3Zb9+qbSSvrIVitzT3YjZqkTZ40IbRsPanlB4h1QB3JVL1SYCdR6ngtFYcuA==}
++
++  aws-ssl-profiles@1.1.2:
++    resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
++    engines: {node: '>= 6.0.0'}
++
++  balanced-match@4.0.4:
++    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
++    engines: {node: 18 || 20 || >=22}
++
++  brace-expansion@5.0.4:
++    resolution: {integrity: sha512-h+DEnpVvxmfVefa4jFbCf5HdH5YMDXRsmKflpf1pILZWRFlTbJpxeU55nJl4Smt5HQaGzg1o6RHFPJaOqnmBDg==}
++    engines: {node: 18 || 20 || >=22}
++
++  debug@4.4.3:
++    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
++    engines: {node: '>=6.0'}
++    peerDependencies:
++      supports-color: '*'
++    peerDependenciesMeta:
++      supports-color:
++        optional: true
++
++  denque@2.1.0:
++    resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
++    engines: {node: '>=0.10'}
++
++  dotenv@17.3.1:
++    resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
++    engines: {node: '>=12'}
++
++  dottie@2.0.7:
++    resolution: {integrity: sha512-7lAK2A0b3zZr3UC5aE69CPdCFR4RHW1o2Dr74TqFykxkUCBXSRJum/yPc7g8zRHJqWKomPLHwFLLoUnn8PXXRg==}
++
++  generate-function@2.3.1:
++    resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
++
++  glob@13.0.6:
++    resolution: {integrity: sha512-Wjlyrolmm8uDpm/ogGyXZXb1Z+Ca2B8NbJwqBVg0axK9GbBeoS7yGV6vjXnYdGm6X53iehEuxxbyiKp8QmN4Vw==}
++    engines: {node: 18 || 20 || >=22}
++
++  iconv-lite@0.7.2:
++    resolution: {integrity: sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==}
++    engines: {node: '>=0.10.0'}
++
++  inflection@1.13.4:
++    resolution: {integrity: sha512-6I/HUDeYFfuNCVS3td055BaXBwKYuzw7K3ExVMStBowKo9oOAMJIXIHvdyR3iboTCp1b+1i5DSkIZTcwIktuDw==}
++    engines: {'0': node >= 0.4.0}
++
++  is-property@1.0.2:
++    resolution: {integrity: sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g==}
++
++  lodash@4.17.23:
++    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
++
++  long@5.3.2:
++    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
++
++  lru-cache@11.2.6:
++    resolution: {integrity: sha512-ESL2CrkS/2wTPfuend7Zhkzo2u0daGJ/A2VucJOgQ/C48S/zB8MMeMHSGKYpXhIjbPxfuezITkaBH1wqv00DDQ==}
++    engines: {node: 20 || >=22}
++
++  lru.min@1.1.4:
++    resolution: {integrity: sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==}
++    engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
++
++  minimatch@10.2.4:
++    resolution: {integrity: sha512-oRjTw/97aTBN0RHbYCdtF1MQfvusSIBQM0IZEgzl6426+8jSC0nF1a/GmnVLpfB9yyr6g6FTqWqiZVbxrtaCIg==}
++    engines: {node: 18 || 20 || >=22}
++
++  minipass@7.1.3:
++    resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
++    engines: {node: '>=16 || 14 >=14.17'}
++
++  moment-timezone@0.5.48:
++    resolution: {integrity: sha512-f22b8LV1gbTO2ms2j2z13MuPogNoh5UzxL3nzNAYKGraILnbGc9NEE6dyiiiLv46DGRb8A4kg8UKWLjPthxBHw==}
++
++  moment@2.30.1:
++    resolution: {integrity: sha512-uEmtNhbDOrWPFS+hdjFCBfy9f2YoyzRpwcl+DqpC6taX21FzsTLQVbMV/W7PzNSX6x/bhC1zA3c2UQ5NzH6how==}
++
++  ms@2.1.3:
++    resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
++
++  mysql2@3.19.1:
++    resolution: {integrity: sha512-yn4zh+Uxu5J3Zvi6Ao96lJ7BSBRkspHflWQAmOPND+htbpIKDQw99TTvPzgihKO/QyMickZopO4OsnixnpcUwA==}
++    engines: {node: '>= 8.0'}
++    peerDependencies:
++      '@types/node': '>= 8'
++
++  named-placeholders@1.1.6:
++    resolution: {integrity: sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w==}
++    engines: {node: '>=8.0.0'}
++
++  package-json-from-dist@1.0.1:
++    resolution: {integrity: sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==}
++
++  path-scurry@2.0.2:
++    resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
++    engines: {node: 18 || 20 || >=22}
++
++  pg-connection-string@2.12.0:
++    resolution: {integrity: sha512-U7qg+bpswf3Cs5xLzRqbXbQl85ng0mfSV/J0nnA31MCLgvEaAo7CIhmeyrmJpOr7o+zm0rXK+hNnT5l9RHkCkQ==}
++
++  retry-as-promised@7.1.1:
++    resolution: {integrity: sha512-hMD7odLOt3LkTjcif8aRZqi/hybjpLNgSk5oF5FCowfCjok6LukpN2bDX7R5wDmbgBQFn7YoBxSagmtXHaJYJw==}
++
++  rimraf@6.1.3:
++    resolution: {integrity: sha512-LKg+Cr2ZF61fkcaK1UdkH2yEBBKnYjTyWzTJT6KNPcSPaiT7HSdhtMXQuN5wkTX0Xu72KQ1l8S42rlmexS2hSA==}
++    engines: {node: 20 || >=22}
++    hasBin: true
++
++  safer-buffer@2.1.2:
++    resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
++
++  semver@7.7.4:
++    resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
++    engines: {node: '>=10'}
++    hasBin: true
++
++  sequelize-pool@7.1.0:
++    resolution: {integrity: sha512-G9c0qlIWQSK29pR/5U2JF5dDQeqqHRragoyahj/Nx4KOOQ3CPPfzxnfqFPCSB7x5UgjOgnZ61nSxz+fjDpRlJg==}
++    engines: {node: '>= 10.0.0'}
++
++  sequelize@6.37.8:
++    resolution: {integrity: sha512-HJ0IQFqcTsTiqbEgiuioYFMSD00TP6Cz7zoTti+zVVBwVe9fEhev9cH6WnM3XU31+ABS356durAb99ZuOthnKw==}
++    engines: {node: '>=10.0.0'}
++    peerDependencies:
++      ibm_db: '*'
++      mariadb: '*'
++      mysql2: '*'
++      oracledb: '*'
++      pg: '*'
++      pg-hstore: '*'
++      snowflake-sdk: '*'
++      sqlite3: '*'
++      tedious: '*'
++    peerDependenciesMeta:
++      ibm_db:
++        optional: true
++      mariadb:
++        optional: true
++      mysql2:
++        optional: true
++      oracledb:
++        optional: true
++      pg:
++        optional: true
++      pg-hstore:
++        optional: true
++      snowflake-sdk:
++        optional: true
++      sqlite3:
++        optional: true
++      tedious:
++        optional: true
++
++  sql-escaper@1.3.3:
++    resolution: {integrity: sha512-BsTCV265VpTp8tm1wyIm1xqQCS+Q9NHx2Sr+WcnUrgLrQ6yiDIvHYJV5gHxsj1lMBy2zm5twLaZao8Jd+S8JJw==}
++    engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
++
++  toposort-class@1.0.1:
++    resolution: {integrity: sha512-OsLcGGbYF3rMjPUf8oKktyvCiUxSbqMMS39m33MAjLTC1DVIH6x3WSt63/M77ihI09+Sdfk1AXvfhCEeUmC7mg==}
++
++  typescript@5.9.3:
++    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
++    engines: {node: '>=14.17'}
++    hasBin: true
++
++  undici-types@7.18.2:
++    resolution: {integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==}
++
++  uuid@8.3.2:
++    resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
++    hasBin: true
++
++  validator@13.15.26:
++    resolution: {integrity: sha512-spH26xU080ydGggxRyR1Yhcbgx+j3y5jbNXk/8L+iRvdIEQ4uTRH2Sgf2dokud6Q4oAtsbNvJ1Ft+9xmm6IZcA==}
++    engines: {node: '>= 0.10'}
++
++  wkx@0.5.0:
++    resolution: {integrity: sha512-Xng/d4Ichh8uN4l0FToV/258EjMGU9MGcA0HV2d9B/ZpZB3lqQm7nkOdZdm5GhKtLLhAE7PiVQwN4eN+2YJJUg==}
++
++snapshots:
++
++  '@types/debug@4.1.12':
++    dependencies:
++      '@types/ms': 2.1.0
++
++  '@types/ms@2.1.0': {}
++
++  '@types/node@25.5.0':
++    dependencies:
++      undici-types: 7.18.2
++
++  '@types/validator@13.15.10': {}
++
++  aws-ssl-profiles@1.1.2: {}
++
++  balanced-match@4.0.4: {}
++
++  brace-expansion@5.0.4:
++    dependencies:
++      balanced-match: 4.0.4
++
++  debug@4.4.3:
++    dependencies:
++      ms: 2.1.3
++
++  denque@2.1.0: {}
++
++  dotenv@17.3.1: {}
++
++  dottie@2.0.7: {}
++
++  generate-function@2.3.1:
++    dependencies:
++      is-property: 1.0.2
++
++  glob@13.0.6:
++    dependencies:
++      minimatch: 10.2.4
++      minipass: 7.1.3
++      path-scurry: 2.0.2
++
++  iconv-lite@0.7.2:
++    dependencies:
++      safer-buffer: 2.1.2
++
++  inflection@1.13.4: {}
++
++  is-property@1.0.2: {}
++
++  lodash@4.17.23: {}
++
++  long@5.3.2: {}
++
++  lru-cache@11.2.6: {}
++
++  lru.min@1.1.4: {}
++
++  minimatch@10.2.4:
++    dependencies:
++      brace-expansion: 5.0.4
++
++  minipass@7.1.3: {}
++
++  moment-timezone@0.5.48:
++    dependencies:
++      moment: 2.30.1
++
++  moment@2.30.1: {}
++
++  ms@2.1.3: {}
++
++  mysql2@3.19.1(@types/node@25.5.0):
++    dependencies:
++      '@types/node': 25.5.0
++      aws-ssl-profiles: 1.1.2
++      denque: 2.1.0
++      generate-function: 2.3.1
++      iconv-lite: 0.7.2
++      long: 5.3.2
++      lru.min: 1.1.4
++      named-placeholders: 1.1.6
++      sql-escaper: 1.3.3
++
++  named-placeholders@1.1.6:
++    dependencies:
++      lru.min: 1.1.4
++
++  package-json-from-dist@1.0.1: {}
++
++  path-scurry@2.0.2:
++    dependencies:
++      lru-cache: 11.2.6
++      minipass: 7.1.3
++
++  pg-connection-string@2.12.0: {}
++
++  retry-as-promised@7.1.1: {}
++
++  rimraf@6.1.3:
++    dependencies:
++      glob: 13.0.6
++      package-json-from-dist: 1.0.1
++
++  safer-buffer@2.1.2: {}
++
++  semver@7.7.4: {}
++
++  sequelize-pool@7.1.0: {}
++
++  sequelize@6.37.8(mysql2@3.19.1(@types/node@25.5.0)):
++    dependencies:
++      '@types/debug': 4.1.12
++      '@types/validator': 13.15.10
++      debug: 4.4.3
++      dottie: 2.0.7
++      inflection: 1.13.4
++      lodash: 4.17.23
++      moment: 2.30.1
++      moment-timezone: 0.5.48
++      pg-connection-string: 2.12.0
++      retry-as-promised: 7.1.1
++      semver: 7.7.4
++      sequelize-pool: 7.1.0
++      toposort-class: 1.0.1
++      uuid: 8.3.2
++      validator: 13.15.26
++      wkx: 0.5.0
++    optionalDependencies:
++      mysql2: 3.19.1(@types/node@25.5.0)
++    transitivePeerDependencies:
++      - supports-color
++
++  sql-escaper@1.3.3: {}
++
++  toposort-class@1.0.1: {}
++
++  typescript@5.9.3: {}
++
++  undici-types@7.18.2: {}
++
++  uuid@8.3.2: {}
++
++  validator@13.15.26: {}
++
++  wkx@0.5.0:
++    dependencies:
++      '@types/node': 25.5.0
+diff --git a/src/config/db.ts b/src/config/db.ts
+new file mode 100644
+index 0000000..049dff0
+--- /dev/null
++++ b/src/config/db.ts
+@@ -0,0 +1,24 @@
++import { Sequelize } from 'sequelize';
++import dotenv from 'dotenv';
++
++dotenv.config();
++
++const sequelize = new Sequelize(
++    process.env.MYSQL_DATABASE as string,
++    process.env.MYSQL_USER as string,
++    process.env.MYSQL_PASSWORD as string, // FIXED: use MYSQL_PASSWORD, not MYSQL_ROOT_PASSWORD
++    {
++        host: process.env.MYSQL_HOST,
++        dialect: 'mysql',
++        port: Number(process.env.MYSQL_PORT) || 3306,
++        logging: false, // Change to console.log to see the generated SQL queries
++        pool: {
++            max: 10,
++            min: 0,
++            acquire: 30000,
++            idle: 10000
++        }
++    }
++);
++
++export default sequelize;
+\ No newline at end of file
+diff --git a/src/index.ts b/src/index.ts
+new file mode 100644
+index 0000000..b2befbb
+--- /dev/null
++++ b/src/index.ts
+@@ -0,0 +1,3 @@
++export { default as sequelize } from './config/db';
++export * from './models';
++export * from './utils/crypto';
+\ No newline at end of file
+diff --git a/src/models/DeliveryDriver.ts b/src/models/DeliveryDriver.ts
+new file mode 100644
+index 0000000..940d5e4
+--- /dev/null
++++ b/src/models/DeliveryDriver.ts
+@@ -0,0 +1,90 @@
++import { DataTypes, Model, Optional } from 'sequelize';
++import sequelize from '../config/db';
++import {decryptAES, encryptAES} from "@/utils/crypto";
++
++interface DeliveryDriverAttributes {
++    driverId: number;
++    encryptedLastName: string;
++    encryptedFirstName: string;
++    company: string;
++    ppeCharterValid: boolean; // PPE = Personal Protective Equipment (EPI in French)
++    ppeSignatureDate: Date | null;
++}
++
++interface DeliveryDriverCreationAttributes extends Optional<DeliveryDriverAttributes, 'driverId'> {}
++
++class DeliveryDriver extends Model<DeliveryDriverAttributes, DeliveryDriverCreationAttributes> implements DeliveryDriverAttributes {
++    public driverId!: number;
++    public encryptedLastName!: string;
++    public encryptedFirstName!: string;
++    public company!: string;
++    public ppeCharterValid!: boolean;
++    public ppeSignatureDate!: Date | null;
++}
++
++DeliveryDriver.init(
++    {
++        driverId: {
++            type: DataTypes.INTEGER.UNSIGNED,
++            autoIncrement: true,
++            primaryKey: true,
++            field: 'driver_id',
++        },
++        encryptedLastName: {
++            type: DataTypes.STRING, // Constraint FC1: Needs AES-256 encryption before insert
++            allowNull: false,
++            field: 'encrypted_last_name',
++        },
++        encryptedFirstName: {
++            type: DataTypes.STRING, // Constraint FC1: Needs AES-256 encryption before insert
++            allowNull: false,
++            field: 'encrypted_first_name',
++        },
++        company: {
++            type: DataTypes.STRING,
++            allowNull: false,
++        },
++        ppeCharterValid: {
++            type: DataTypes.BOOLEAN,
++            defaultValue: false,
++            field: 'ppe_charter_valid',
++        },
++        ppeSignatureDate: {
++            type: DataTypes.DATE,
++            allowNull: true,
++            field: 'ppe_signature_date',
++        },
++    },
++    {
++        sequelize,
++        tableName: 'delivery_drivers',
++        timestamps: false,
++        hooks: {
++            // Encrypt before inserting or updating
++            beforeSave: (driver: DeliveryDriver) => {
++                if (driver.changed('encryptedFirstName')) {
++                    driver.encryptedFirstName = encryptAES(driver.encryptedFirstName);
++                }
++                if (driver.changed('encryptedLastName')) {
++                    driver.encryptedLastName = encryptAES(driver.encryptedLastName);
++                }
++            },
++            // Decrypt automatically when querying the database
++            afterFind: (result: DeliveryDriver | DeliveryDriver[] | null) => {
++                if (!result) return;
++
++                if (Array.isArray(result)) {
++                    result.forEach(driver => {
++                        driver.encryptedFirstName = decryptAES(driver.encryptedFirstName);
++                        driver.encryptedLastName = decryptAES(driver.encryptedLastName);
++                    });
++                } else {
++                    result.encryptedFirstName = decryptAES(result.encryptedFirstName);
++                    result.encryptedLastName = decryptAES(result.encryptedLastName);
++                }
++            },
++        },
++    }
++);
++
++export default DeliveryDriver;
+\ No newline at end of file
+diff --git a/src/models/Employee.ts b/src/models/Employee.ts
+new file mode 100644
+index 0000000..234572c
+--- /dev/null
++++ b/src/models/Employee.ts
+@@ -0,0 +1,63 @@
++import { DataTypes, Model, Optional } from 'sequelize';
++import sequelize from '../config/db';
++import {hashSHA256} from "@/utils/crypto";
++
++interface EmployeeAttributes {
++    employeeId: number;
++    username: string;
++    passwordHash: string;
++    role: 'Admin' | 'WarehouseWorker';
++}
++
++interface EmployeeCreationAttributes extends Optional<EmployeeAttributes, 'employeeId'> {}
++
++class Employee extends Model<EmployeeAttributes, EmployeeCreationAttributes> implements EmployeeAttributes {
++    public employeeId!: number;
++    public username!: string;
++    public passwordHash!: string;
++    public role!: 'Admin' | 'WarehouseWorker';
++}
++
++Employee.init(
++    {
++        employeeId: {
++            type: DataTypes.INTEGER.UNSIGNED,
++            autoIncrement: true,
++            primaryKey: true,
++            field: 'employee_id',
++        },
++        username: {
++            type: DataTypes.STRING,
++            allowNull: false,
++            unique: true,
++        },
++        passwordHash: {
++            type: DataTypes.STRING, // NOTE: Needs SHA-256 hashing before insert
++            allowNull: false,
++            field: 'password_hash',
++        },
++        role: {
++            type: DataTypes.ENUM('Admin', 'WarehouseWorker'), // Translated from Admin/Magasinier
++            allowNull: false,
++        },
++    },
++    {
++        sequelize,
++        tableName: 'employees',
++        timestamps: false,
++        hooks: {
++            beforeCreate: (employee: Employee) => {
++                if (employee.passwordHash) {
++                    employee.passwordHash = hashSHA256(employee.passwordHash);
++                }
++            },
++            beforeUpdate: (employee: Employee) => {
++                if (employee.changed('passwordHash')) {
++                    employee.passwordHash = hashSHA256(employee.passwordHash);
++                }
++            },
++        },
++    }
++);
++
++export default Employee;
+\ No newline at end of file
+diff --git a/src/models/HistoryLog.ts b/src/models/HistoryLog.ts
+new file mode 100644
+index 0000000..b40a775
+--- /dev/null
++++ b/src/models/HistoryLog.ts
+@@ -0,0 +1,58 @@
++import { DataTypes, Model, Optional } from 'sequelize';
++import sequelize from '../config/db';
++
++interface HistoryLogAttributes {
++    logId: number;
++    dateTime: Date;
++    actionType: 'Entry' | 'Exit' | 'Refusal';
++    details: string;
++
++    // Foreign Keys (Nullable since a log might pertain to only one of these at a time)
++    employeeId?: number;
++    vehicleId?: number;
++    driverId?: number;
++    visitorId?: number;
++}
++
++interface HistoryLogCreationAttributes extends Optional<HistoryLogAttributes, 'logId'> {}
++
++class HistoryLog extends Model<HistoryLogAttributes, HistoryLogCreationAttributes> implements HistoryLogAttributes {
++    public logId!: number;
++    public dateTime!: Date;
++    public actionType!: 'Entry' | 'Exit' | 'Refusal';
++    public details!: string;
++}
++
++HistoryLog.init(
++    {
++        logId: {
++            type: DataTypes.INTEGER.UNSIGNED,
++            autoIncrement: true,
++            primaryKey: true,
++            field: 'log_id',
++        },
++        dateTime: {
++            type: DataTypes.DATE,
++            allowNull: false,
++            defaultValue: DataTypes.NOW,
++            field: 'date_time',
++        },
++        actionType: {
++            type: DataTypes.ENUM('Entry', 'Exit', 'Refusal'),
++            allowNull: false,
++            field: 'action_type',
++        },
++        details: {
++            type: DataTypes.TEXT,
++            allowNull: true,
++        },
++    },
++    {
++        sequelize,
++        tableName: 'history_logs',
++        timestamps: false,
++        // Constraint FC2: Table partitioning by year should be handled via a raw SQL migration.
++    }
++);
++
++export default HistoryLog;
+\ No newline at end of file
+diff --git a/src/models/Vehicle.ts b/src/models/Vehicle.ts
+new file mode 100644
+index 0000000..da27627
+--- /dev/null
++++ b/src/models/Vehicle.ts
+@@ -0,0 +1,47 @@
++import { DataTypes, Model, Optional } from 'sequelize';
++import sequelize from '../config/db';
++
++interface VehicleAttributes {
++    vehicleId: number;
++    licensePlate: string;
++    vehicleType: 'HGV' | 'LCV'; // HGV = Heavy Goods Vehicle (PL), LCV = Light Commercial Vehicle (VUL)
++    driverId?: number; // Foreign Key
++}
++
++interface VehicleCreationAttributes extends Optional<VehicleAttributes, 'vehicleId'> {}
++
++class Vehicle extends Model<VehicleAttributes, VehicleCreationAttributes> implements VehicleAttributes {
++    public vehicleId!: number;
++    public licensePlate!: string;
++    public vehicleType!: 'HGV' | 'LCV';
++    public driverId!: number;
++}
++
++Vehicle.init(
++    {
++        vehicleId: {
++            type: DataTypes.INTEGER.UNSIGNED,
++            autoIncrement: true,
++            primaryKey: true,
++            field: 'vehicle_id',
++        },
++        licensePlate: {
++            type: DataTypes.STRING,
++            allowNull: false,
++            unique: true,
++            field: 'license_plate',
++        },
++        vehicleType: {
++            type: DataTypes.ENUM('HGV', 'LCV'),
++            allowNull: false,
++            field: 'vehicle_type',
++        },
++    },
++    {
++        sequelize,
++        tableName: 'vehicles',
++        timestamps: false,
++    }
++);
++
++export default Vehicle;
+\ No newline at end of file
+diff --git a/src/models/Visitor.ts b/src/models/Visitor.ts
+new file mode 100644
+index 0000000..d446183
+--- /dev/null
++++ b/src/models/Visitor.ts
+@@ -0,0 +1,50 @@
++import { DataTypes, Model, Optional } from 'sequelize';
++import sequelize from '../config/db';
++
++interface VisitorAttributes {
++    visitorId: number;
++    fullName: string;
++    company: string;
++    arrivalTime: Date;
++}
++
++interface VisitorCreationAttributes extends Optional<VisitorAttributes, 'visitorId'> {}
++
++class Visitor extends Model<VisitorAttributes, VisitorCreationAttributes> implements VisitorAttributes {
++    public visitorId!: number;
++    public fullName!: string;
++    public company!: string;
++    public arrivalTime!: Date;
++}
++
++Visitor.init(
++    {
++        visitorId: {
++            type: DataTypes.INTEGER.UNSIGNED,
++            autoIncrement: true,
++            primaryKey: true,
++            field: 'visitor_id',
++        },
++        fullName: {
++            type: DataTypes.STRING,
++            allowNull: false,
++            field: 'full_name',
++        },
++        company: {
++            type: DataTypes.STRING,
++            allowNull: false,
++        },
++        arrivalTime: {
++            type: DataTypes.DATE,
++            allowNull: false,
++            field: 'arrival_time',
++        },
++    },
++    {
++        sequelize,
++        tableName: 'visitors',
++        timestamps: false,
++    }
++);
++
++export default Visitor;
+\ No newline at end of file
+diff --git a/src/models/index.ts b/src/models/index.ts
+new file mode 100644
+index 0000000..f398d39
+--- /dev/null
++++ b/src/models/index.ts
+@@ -0,0 +1,33 @@
++import Employee from './Employee';
++import DeliveryDriver from './DeliveryDriver';
++import Vehicle from './Vehicle';
++import Visitor from './Visitor';
++import HistoryLog from './HistoryLog';
++
++// --- DeliveryDriver <-> Vehicle (1 to Many) ---
++DeliveryDriver.hasMany(Vehicle, { foreignKey: 'driverId' });
++Vehicle.belongsTo(DeliveryDriver, { foreignKey: 'driverId' });
++
++// --- Employee <-> HistoryLog (1 to Many) ---
++Employee.hasMany(HistoryLog, { foreignKey: 'employeeId' });
++HistoryLog.belongsTo(Employee, { foreignKey: 'employeeId' });
++
++// --- Vehicle <-> HistoryLog (1 to Many) ---
++Vehicle.hasMany(HistoryLog, { foreignKey: 'vehicleId' });
++HistoryLog.belongsTo(Vehicle, { foreignKey: 'vehicleId' });
++
++// --- DeliveryDriver <-> HistoryLog (1 to Many) ---
++DeliveryDriver.hasMany(HistoryLog, { foreignKey: 'driverId' });
++HistoryLog.belongsTo(DeliveryDriver, { foreignKey: 'driverId' });
++
++// --- Visitor <-> HistoryLog (1 to Many) ---
++Visitor.hasMany(HistoryLog, { foreignKey: 'visitorId' });
++HistoryLog.belongsTo(Visitor, { foreignKey: 'visitorId' });
++
++export {
++    Employee,
++    DeliveryDriver,
++    Vehicle,
++    Visitor,
++    HistoryLog,
++};
+\ No newline at end of file
+diff --git a/src/utils/crypto.ts b/src/utils/crypto.ts
+new file mode 100644
+index 0000000..5b61dd9
+--- /dev/null
++++ b/src/utils/crypto.ts
+@@ -0,0 +1,36 @@
++import crypto from 'crypto';
++import dotenv from 'dotenv';
++
++dotenv.config();
++
++// AES-256-CBC requires a 32-byte key.
++// Add ENCRYPTION_KEY to your .env file!
++const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'default-32-character-secret-key!';
++const ALGORITHM = 'aes-256-cbc';
++
++// --- AES-256 Encryption (For Delivery Drivers) ---
++export const encryptAES = (text: string): string => {
++    const iv = crypto.randomBytes(16);
++    const cipher = crypto.createCipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
++    let encrypted = cipher.update(text, 'utf8', 'hex');
++    encrypted += cipher.final('hex');
++    // Store the IV alongside the encrypted text so it can be decrypted later
++    return `${iv.toString('hex')}:${encrypted}`;
++};
++
++export const decryptAES = (encryptedText: string): string => {
++    if (!encryptedText || !encryptedText.includes(':')) return encryptedText;
++
++    const [ivHex, encrypted] = encryptedText.split(':');
++    const iv = Buffer.from(ivHex, 'hex');
++    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), iv);
++
++    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
++    decrypted += decipher.final('utf8');
++    return decrypted;
++};
++
++// --- SHA-256 Hashing (For Employees) ---
++export const hashSHA256 = (text: string): string => {
++    return crypto.createHash('sha256').update(text).digest('hex');
++};
+\ No newline at end of file
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100644
+index 0000000..08c5487
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,20 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "module": "CommonJS",
++    "declaration": true,
++    "declarationMap": true,
++    "sourceMap": true,
++    "outDir": "./dist",
++    "rootDir": "./src",
++    "strict": true,
++    "esModuleInterop": true,
++    "skipLibCheck": true,
++    "forceConsistentCasingInFileNames": true,
++    "paths": {
++        "@/*": ["./src/*"]
++    }
++  },
++  "include": ["src/**/*"],
++  "exclude": ["node_modules", "dist"]
++}
+\ No newline at end of file

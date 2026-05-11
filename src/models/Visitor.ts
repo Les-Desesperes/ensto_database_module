@@ -3,8 +3,10 @@ import defaultSequelize from '../config/db';
 
 interface VisitorAttributes {
     visitorId: number;
-    fullName: string;
+    firstName: string;
+    lastName: string;
     company: string;
+    employee: string;
     arrivalTime: Date;
 }
 
@@ -21,8 +23,10 @@ export const defineVisitorModel = (sequelize: Sequelize): VisitorModel => {
 
     class Visitor extends Model<VisitorAttributes, VisitorCreationAttributes> implements VisitorAttributes {
         declare visitorId: number;
-        declare fullName: string;
+        declare firstName: string;
+        declare lastName: string;
         declare company: string;
+        declare employee: string;
         declare arrivalTime: Date;
     }
 
@@ -34,12 +38,19 @@ export const defineVisitorModel = (sequelize: Sequelize): VisitorModel => {
                 primaryKey: true,
                 field: 'visitor_id',
             },
-            fullName: {
+            firstName: {
                 type: DataTypes.STRING,
                 allowNull: false,
-                field: 'full_name',
+            },
+            lastName: {
+                type: DataTypes.STRING,
+                allowNull: false,
             },
             company: {
+                type: DataTypes.STRING,
+                allowNull: false,
+            },
+            employee: {
                 type: DataTypes.STRING,
                 allowNull: false,
             },
